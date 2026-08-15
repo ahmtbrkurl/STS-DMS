@@ -36,7 +36,13 @@ const STSLayout = (function () {
       .filter(item => STSAPI.hasRole(item.minRole))
       .map(item => {
         const activeClass = (item.key === options.activeNav) ? ' active' : '';
-        return '<a href="' + item.href + '" class="' + activeClass.trim() + '">' +
+        // Aktif olmayan bir sayfaya gecerken, sayfa gecisi sirasindaki
+        // bosluk hissini azaltmak icin hemen yukleme gostergesini ac —
+        // tarayici gercek sayfayi yuklerken kullanici bos ekran gormez.
+        const onClickAttr = (item.key === options.activeNav)
+          ? ''
+          : ' onclick="if(window.STSLoading) STSLoading.show();"';
+        return '<a href="' + item.href + '" class="' + activeClass.trim() + '"' + onClickAttr + '>' +
           '<span class="icon">' + item.icon + '</span>' +
           '<span data-i18n="' + item.i18n + '"></span></a>';
       }).join('');
