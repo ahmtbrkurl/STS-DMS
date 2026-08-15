@@ -2,7 +2,7 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<title>STS-DMS — Başvuru Gönderme Test Sayfası (v4)</title>
+<title>STS-DMS — Başvuru Gönderme Test Sayfası (v5)</title>
 <style>
   body { font-family: -apple-system, Segoe UI, Arial, sans-serif; background:#0f1115; color:#e6e6e6; padding:24px; max-width:700px; margin:0 auto; }
   h1 { font-size:20px; }
@@ -21,6 +21,7 @@
 
   .btn { display:inline-flex; align-items:center; gap:6px; padding:8px 14px; border-radius:6px; font-size:13px; font-weight:600; border:1px solid transparent; cursor:pointer; margin-top:0; }
   .btn-primary { background:#2563eb; color:#fff; }
+  .btn-primary:disabled { background:#334155; cursor:not-allowed; opacity:0.7; }
   .btn-secondary { background:#1b1e24; color:#e6e6e6; border-color:#333; }
 
   .idcap-sides { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:6px; }
@@ -40,7 +41,7 @@
   .idcap-modal-header { color:#fff; font-weight:600; margin-bottom:12px; text-align:center; font-size:13px; }
   .idcap-video-wrap { position:relative; border-radius:8px; overflow:hidden; background:#000; aspect-ratio:4/3; }
   .idcap-video-portrait { aspect-ratio:3/4; }
-  .idcap-video { width:100%; height:100%; object-fit:cover; display:block; }
+  .idcap-video { width:100%; height:100%; object-fit:cover; display:block; cursor:pointer; }
   .idcap-guide { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:82%; aspect-ratio:1.586/1; border:2px dashed rgba(255,255,255,0.65); border-radius:12px; box-shadow:0 0 0 999px rgba(0,0,0,0.45); pointer-events:none; }
   .idcap-guide-portrait { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:62%; height:82%; display:flex; align-items:center; justify-content:center; border-radius:8px; box-shadow:0 0 0 999px rgba(0,0,0,0.45); pointer-events:none; }
   .idcap-portrait-svg { width:100%; height:100%; }
@@ -51,7 +52,7 @@
 </head>
 <body>
   <h1>STS-DMS — Başvuru Gönderme Test Sayfası</h1>
-  <p style="color:#f59e0b; font-size:12px;">v4: kılavuza kırpma (kalite/gereksiz alan sorunu düzeltildi) + ön/arka artık TEK görselde otomatik birleşiyor.</p>
+  <p style="color:#f59e0b; font-size:12px;">v5: otomatik odaklama iyileştirmeleri (sürekli AF isteği, ~1sn odaklanma bekletmesi, video'ya dokununca yeniden odaklama) + çözünürlük/kalite artırıldı.</p>
 
   <label>Web App URL</label>
   <input id="baseUrl" value="https://script.google.com/macros/s/AKfycbzztkmZ4T4BbxxrD2-0fxK7I8s77nyBcRA49kfjLg1G7JDe_MQszFnTj-0JjKPIaQJx3g/exec">
@@ -68,14 +69,14 @@
 
 <script>
 // ============================================================
-// STSIDCapture — kamera + kılavuz bileşeni (kırpma + ön/arka birleştirme)
+// STSIDCapture — kamera + kılavuz + odaklama iyileştirmeleri
 // ============================================================
 const STSIDCapture = (function () {
   let activeStream = null;
 
   function attach(container, options) {
     const isPortrait = options.guideType === 'portrait';
-    render(null);
+    render(options.existingPreview || null);
 
     function render(previewDataUrl) {
       container.innerHTML =
@@ -119,39 +120,59 @@ const STSIDCapture = (function () {
             '<video autoplay playsinline muted class="idcap-video"></video>' +
             (isPortrait ? renderPortraitGuideSvg() : '<div class="idcap-guide"></div>') +
           '</div>' +
-          '<div class="idcap-modal-hint">' + escapeHtml(options.hint || 'Belgeyi çerçeveye hizalayın') + '</div>' +
+          '<div class="idcap-modal-hint">Kamera açılıyor...</div>' +
           '<div class="idcap-modal-actions">' +
             '<button type="button" class="btn btn-secondary idcap-cancel">İptal</button>' +
-            '<button type="button" class="btn btn-primary idcap-shoot">Çek</button>' +
+            '<button type="button" class="btn btn-primary idcap-shoot" disabled>Odaklanıyor...</button>' +
           '</div>' +
         '</div>';
       document.body.appendChild(modal);
 
       const video = modal.querySelector('.idcap-video');
       const hintEl = modal.querySelector('.idcap-modal-hint');
+      const shootBtn = modal.querySelector('.idcap-shoot');
       const facingMode = options.facingMode || (isPortrait ? 'user' : 'environment');
+      let currentTrack = null;
 
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         hintEl.textContent = 'Bu tarayıcı kamera erişimini desteklemiyor. Lütfen dosyadan yükleyin.';
-        modal.querySelector('.idcap-shoot').disabled = true;
+        shootBtn.textContent = 'Çek';
       } else {
         navigator.mediaDevices.getUserMedia({
-          video: { facingMode: facingMode, width: { ideal: 1920 }, height: { ideal: 1440 } },
+          video: {
+            facingMode: facingMode,
+            width: { ideal: 2560 },
+            height: { ideal: 1920 },
+            advanced: [{ focusMode: 'continuous' }]
+          },
           audio: false
         })
           .then(function (stream) {
             activeStream = stream;
             video.srcObject = stream;
+            currentTrack = stream.getVideoTracks()[0];
+            tryEnableContinuousFocus(currentTrack);
+
+            hintEl.textContent = 'Odaklanılıyor, sabit tutun...';
+            setTimeout(function () {
+              shootBtn.disabled = false;
+              shootBtn.textContent = 'Çek';
+              hintEl.textContent = options.hint || 'Belgeyi çerçeveye hizalayın';
+            }, 1100);
           })
           .catch(function (err) {
             hintEl.textContent = 'Kameraya erişilemedi (' + err.message + '). Lütfen dosyadan yükleyin.';
-            modal.querySelector('.idcap-shoot').disabled = true;
+            shootBtn.disabled = true;
           });
+
+        video.addEventListener('click', function () {
+          if (currentTrack) refocus(currentTrack, hintEl, options.hint);
+        });
       }
 
       modal.querySelector('.idcap-cancel').addEventListener('click', closeModal);
-      modal.querySelector('.idcap-shoot').addEventListener('click', function () {
-        if (!video.videoWidth) return;
+      shootBtn.addEventListener('click', function () {
+        if (!video.videoWidth || shootBtn.disabled) return;
         const dataUrl = isPortrait ? capturePortraitFrame(video) : captureCardFrame(video);
         const base64 = dataUrl.split(',')[1];
         render(dataUrl);
@@ -167,6 +188,34 @@ const STSIDCapture = (function () {
         if (modal.parentNode) document.body.removeChild(modal);
       }
     }
+  }
+
+  function tryEnableContinuousFocus(track) {
+    if (!track || !track.getCapabilities) return;
+    try {
+      const caps = track.getCapabilities();
+      if (caps.focusMode && caps.focusMode.indexOf('continuous') !== -1) {
+        track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(function () {});
+      }
+    } catch (e) { /* desteklenmiyor, sorun değil */ }
+  }
+
+  function refocus(track, hintEl, originalHint) {
+    if (!track || !track.getCapabilities) return;
+    try {
+      const caps = track.getCapabilities();
+      if (caps.focusMode && caps.focusMode.indexOf('single-shot') !== -1) {
+        hintEl.textContent = 'Yeniden odaklanılıyor...';
+        track.applyConstraints({ advanced: [{ focusMode: 'single-shot' }] })
+          .then(function () {
+            setTimeout(function () {
+              hintEl.textContent = originalHint || 'Belgeyi çerçeveye hizalayın';
+              track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(function () {});
+            }, 600);
+          })
+          .catch(function () {});
+      }
+    } catch (e) { /* desteklenmiyor */ }
   }
 
   function attachTwoSided(container, options) {
@@ -224,7 +273,7 @@ const STSIDCapture = (function () {
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(imgTop, 0, 0, width, heightTop);
       ctx.drawImage(imgBottom, 0, heightTop + gap, width, heightBottom);
-      callback(canvas.toDataURL('image/jpeg', 0.92));
+      callback(canvas.toDataURL('image/jpeg', 0.95));
     }
     imgTop.onload = function () { loaded++; if (loaded === 2) onBothLoaded(); };
     imgBottom.onload = function () { loaded++; if (loaded === 2) onBothLoaded(); };
@@ -258,7 +307,7 @@ const STSIDCapture = (function () {
     canvas.height = guideH;
     const ctx = canvas.getContext('2d');
     ctx.drawImage(video, guideX, guideY, guideW, guideH, 0, 0, guideW, guideH);
-    return canvas.toDataURL('image/jpeg', 0.92);
+    return canvas.toDataURL('image/jpeg', 0.95);
   }
 
   function capturePortraitFrame(video) {
@@ -278,7 +327,7 @@ const STSIDCapture = (function () {
     canvas.height = guideH;
     const ctx = canvas.getContext('2d');
     ctx.drawImage(video, guideX, guideY, guideW, guideH, 0, 0, guideW, guideH);
-    return canvas.toDataURL('image/jpeg', 0.92);
+    return canvas.toDataURL('image/jpeg', 0.95);
   }
 
   function escapeHtml(str) {
@@ -363,18 +412,14 @@ function renderForm(form) {
 
   form.fields.filter(f => f.Type === 'İmza').forEach(f => setupSignatureCanvas(f.FieldID));
 
-  // İki taraflı belge alanları — artık TEK birleşik görsel dönüyor
   form.fields.filter(f => f.Type === 'Belge' && (f.TwoSided === true || f.TwoSided === 'TRUE')).forEach(f => {
     const wrap = document.getElementById('idcap_' + f.FieldID);
     STSIDCapture.attachTwoSided(wrap, {
       hint: (f.Label || 'Belge') + ' yüzünü çerçeveye hizalayıp çekin',
-      onMerged: function (data) {
-        fileData[f.FieldID] = data; // artık tek dosya
-      }
+      onMerged: function (data) { fileData[f.FieldID] = data; }
     });
   });
 
-  // Vesikalık modu alanları
   form.fields.filter(f => f.Type === 'Fotoğraf' && (f.VesikalikMode === true || f.VesikalikMode === 'TRUE')).forEach(f => {
     const wrap = document.getElementById('idcap_' + f.FieldID);
     STSIDCapture.attach(wrap, {
