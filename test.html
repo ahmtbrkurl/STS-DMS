@@ -2,7 +2,7 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<title>STS-DMS — Başvuru Gönderme Test Sayfası (v5)</title>
+<title>STS-DMS — Başvuru Gönderme Test Sayfası (v6)</title>
 <style>
   body { font-family: -apple-system, Segoe UI, Arial, sans-serif; background:#0f1115; color:#e6e6e6; padding:24px; max-width:700px; margin:0 auto; }
   h1 { font-size:20px; }
@@ -46,13 +46,14 @@
   .idcap-guide-portrait { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:62%; height:82%; display:flex; align-items:center; justify-content:center; border-radius:8px; box-shadow:0 0 0 999px rgba(0,0,0,0.45); pointer-events:none; }
   .idcap-portrait-svg { width:100%; height:100%; }
   .idcap-modal-hint { color:#cbd5e1; font-size:11px; text-align:center; margin-top:12px; min-height:16px; }
-  .idcap-modal-actions { display:flex; gap:10px; justify-content:center; margin-top:14px; }
+  .idcap-modal-actions { display:flex; gap:10px; justify-content:center; margin-top:14px; flex-wrap:wrap; }
   .idcap-modal-actions .btn { min-width:100px; justify-content:center; }
+  .btn-secondary:disabled { opacity:0.5; cursor:not-allowed; }
 </style>
 </head>
 <body>
   <h1>STS-DMS — Başvuru Gönderme Test Sayfası</h1>
-  <p style="color:#f59e0b; font-size:12px;">v5: otomatik odaklama iyileştirmeleri (sürekli AF isteği, ~1sn odaklanma bekletmesi, video'ya dokununca yeniden odaklama) + çözünürlük/kalite artırıldı.</p>
+  <p style="color:#f59e0b; font-size:12px;">v6: belirgin "Odakla" butonu eklendi (dokunmatik odaklama desteklemeyen cihazlar için de net geri bildirim verir).
 
   <label>Web App URL</label>
   <input id="baseUrl" value="https://script.google.com/macros/s/AKfycbzztkmZ4T4BbxxrD2-0fxK7I8s77nyBcRA49kfjLg1G7JDe_MQszFnTj-0JjKPIaQJx3g/exec">
@@ -123,6 +124,7 @@ const STSIDCapture = (function () {
           '<div class="idcap-modal-hint">Kamera açılıyor...</div>' +
           '<div class="idcap-modal-actions">' +
             '<button type="button" class="btn btn-secondary idcap-cancel">İptal</button>' +
+            '<button type="button" class="btn btn-secondary idcap-refocus">🎯 Odakla</button>' +
             '<button type="button" class="btn btn-primary idcap-shoot" disabled>Odaklanıyor...</button>' +
           '</div>' +
         '</div>';
@@ -131,6 +133,7 @@ const STSIDCapture = (function () {
       const video = modal.querySelector('.idcap-video');
       const hintEl = modal.querySelector('.idcap-modal-hint');
       const shootBtn = modal.querySelector('.idcap-shoot');
+      const refocusBtn = modal.querySelector('.idcap-refocus');
       const facingMode = options.facingMode || (isPortrait ? 'user' : 'environment');
       let currentTrack = null;
 
@@ -158,7 +161,7 @@ const STSIDCapture = (function () {
               shootBtn.disabled = false;
               shootBtn.textContent = 'Çek';
               hintEl.textContent = options.hint || 'Belgeyi çerçeveye hizalayın';
-            }, 1100);
+            }, 1500);
           })
           .catch(function (err) {
             hintEl.textContent = 'Kameraya erişilemedi (' + err.message + '). Lütfen dosyadan yükleyin.';
@@ -171,6 +174,15 @@ const STSIDCapture = (function () {
       }
 
       modal.querySelector('.idcap-cancel').addEventListener('click', closeModal);
+
+      refocusBtn.addEventListener('click', function () {
+        if (currentTrack) {
+          refocus(currentTrack, hintEl, options.hint);
+        } else {
+          hintEl.textContent = 'Kamera henüz hazır değil.';
+        }
+      });
+
       shootBtn.addEventListener('click', function () {
         if (!video.videoWidth || shootBtn.disabled) return;
         const dataUrl = isPortrait ? capturePortraitFrame(video) : captureCardFrame(video);
@@ -201,7 +213,11 @@ const STSIDCapture = (function () {
   }
 
   function refocus(track, hintEl, originalHint) {
-    if (!track || !track.getCapabilities) return;
+    if (!track || !track.getCapabilities) {
+      hintEl.textContent = 'Bu cihaz/tarayıcı manuel odaklama kontrolünü desteklemiyor. Belgeyi hafifçe öne/arkaya oynatmayı deneyin.';
+      resetHintAfter(hintEl, originalHint);
+      return;
+    }
     try {
       const caps = track.getCapabilities();
       if (caps.focusMode && caps.focusMode.indexOf('single-shot') !== -1) {
@@ -209,13 +225,29 @@ const STSIDCapture = (function () {
         track.applyConstraints({ advanced: [{ focusMode: 'single-shot' }] })
           .then(function () {
             setTimeout(function () {
-              hintEl.textContent = originalHint || 'Belgeyi çerçeveye hizalayın';
+              hintEl.textContent = 'Odaklandı, çekebilirsiniz.';
               track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(function () {});
-            }, 600);
+              resetHintAfter(hintEl, originalHint);
+            }, 700);
           })
-          .catch(function () {});
+          .catch(function () {
+            hintEl.textContent = 'Odaklama denendi ama uygulanamadı. Belgeyi hafifçe öne/arkaya oynatmayı deneyin.';
+            resetHintAfter(hintEl, originalHint);
+          });
+      } else {
+        hintEl.textContent = 'Bu cihaz manuel odaklama kontrolünü desteklemiyor. Belgeyi hafifçe öne/arkaya oynatarak netleşmesini bekleyin.';
+        resetHintAfter(hintEl, originalHint);
       }
-    } catch (e) { /* desteklenmiyor */ }
+    } catch (e) {
+      hintEl.textContent = 'Bu cihaz manuel odaklama kontrolünü desteklemiyor.';
+      resetHintAfter(hintEl, originalHint);
+    }
+  }
+
+  function resetHintAfter(hintEl, originalHint) {
+    setTimeout(function () {
+      hintEl.textContent = originalHint || 'Belgeyi çerçeveye hizalayın';
+    }, 2600);
   }
 
   function attachTwoSided(container, options) {
