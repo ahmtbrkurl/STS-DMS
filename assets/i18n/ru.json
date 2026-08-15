@@ -102,6 +102,9 @@
   "fieldtype.AçılırListe": "Выпадающий список",
   "fieldtype.Onay": "Согласие",
   "fieldtype.İmza": "Подпись",
+  "fieldtype.Başlık": "Заголовок раздела",
+  "forms.headingText": "Текст заголовка",
+  "forms.headingHint": "Отображается как заголовок раздела в форме (напр. 'Личные данные', 'Документы') — кандидат не заполняет, только визуальный разделитель.",
 
   "campaigns.title": "Кампании",
   "campaigns.subtitle": "Создавайте кампании набора по группам и формам.",
@@ -171,5 +174,25 @@
   "personnel.rosterDesc": "Одобренные и зарегистрированные сотрудники.",
   "personnel.noPersonnel": "Записи о персонале ещё не созданы.",
   "personnel.allStatuses": "Все статусы",
-  "personnel.viewFiles": "Просмотр файлов"
+  "personnel.viewFiles": "Просмотр файлов",
+
+  "logs.title": "Журнал действий",
+  "logs.subtitle": "Кто, когда и что сделал — все действия сохраняются навсегда.",
+  "logs.allActions": "Все действия",
+  "logs.noLogs": "Записей журнала пока нет.",
+  "logs.timestamp": "Дата/Время",
+  "logs.user": "Пользователь",
+  "logs.action": "Действие",
+  "logs.target": "Запись",
+  "logs.description": "Описание",
+
+  "dashboard.userActivityTitle": "Активность пользователей",
+  "dashboard.userActivityDesc": "Сводка действий HR-пользователей на сегодня (только для Admin).",
+  "dashboard.noActivity": "Активность пока не зафиксирована.",
+  "dashboard.colUser": "Пользователь",
+  "dashboard.colTotal": "Всего действий",
+  "dashboard.colCreated": "Создано",
+  "dashboard.colUpdated": "Одобрено/Обновлено",
+  "dashboard.colPersonnelCreated": "Создано сотрудников",
+  "dashboard.colDeleted": "Удалено"
 }

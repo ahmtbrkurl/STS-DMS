@@ -24,7 +24,7 @@ const STSLayout = (function () {
     { key: 'campaigns', href: 'campaigns.html', icon: '📣', i18n: 'nav.campaigns', minRole: 'Görüntüleyici' },
     { key: 'links', href: 'links.html', icon: '🔗', i18n: 'nav.links', minRole: 'Görüntüleyici' },
     { key: 'personnel', href: 'personnel.html', icon: '📄', i18n: 'nav.personnel', minRole: 'Görüntüleyici' },
-    { key: 'logs', href: 'logs.html', icon: '🗒️', i18n: 'nav.logs', minRole: 'Görüntüleyici' },
+    { key: 'logs', href: 'logs.html', icon: '🗒️', i18n: 'nav.logs', minRole: 'Admin' },
     { key: 'settings', href: 'settings.html', icon: '⚙️', i18n: 'nav.settings', minRole: 'Admin' }
   ];
 

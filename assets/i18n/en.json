@@ -102,6 +102,9 @@
   "fieldtype.AçılırListe": "Dropdown",
   "fieldtype.Onay": "Consent",
   "fieldtype.İmza": "Signature",
+  "fieldtype.Başlık": "Section Heading",
+  "forms.headingText": "Heading Text",
+  "forms.headingHint": "Appears as a section heading in the form (e.g. 'Personal Info', 'Documents') — not filled in by the candidate, just a visual divider.",
 
   "campaigns.title": "Campaigns",
   "campaigns.subtitle": "Create recruitment campaigns per group and form.",
@@ -171,5 +174,25 @@
   "personnel.rosterDesc": "Approved and registered personnel.",
   "personnel.noPersonnel": "No personnel records created yet.",
   "personnel.allStatuses": "All Statuses",
-  "personnel.viewFiles": "View Files"
+  "personnel.viewFiles": "View Files",
+
+  "logs.title": "Activity Logs",
+  "logs.subtitle": "Who did what and when — every action is permanently recorded.",
+  "logs.allActions": "All Actions",
+  "logs.noLogs": "No log entries yet.",
+  "logs.timestamp": "Date/Time",
+  "logs.user": "User",
+  "logs.action": "Action",
+  "logs.target": "Record",
+  "logs.description": "Description",
+
+  "dashboard.userActivityTitle": "User Activity",
+  "dashboard.userActivityDesc": "Summary of HR users' actions to date (Admin only).",
+  "dashboard.noActivity": "No activity recorded yet.",
+  "dashboard.colUser": "User",
+  "dashboard.colTotal": "Total Actions",
+  "dashboard.colCreated": "Created",
+  "dashboard.colUpdated": "Approved/Updated",
+  "dashboard.colPersonnelCreated": "Personnel Created",
+  "dashboard.colDeleted": "Deleted"
 }

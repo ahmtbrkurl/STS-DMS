@@ -221,6 +221,19 @@
   color: var(--status-danger-text);
 }
 
+.apply-section-heading {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+  color: var(--text-primary);
+  margin: var(--space-6) 0 var(--space-3);
+  padding-bottom: var(--space-2);
+  border-bottom: 2px solid var(--brand-primary-light);
+}
+
+.apply-section-heading:first-child {
+  margin-top: 0;
+}
+
 .apply-input {
   width: 100%;
   padding: 11px 12px;
@@ -375,6 +388,14 @@
   font-weight: var(--weight-bold);
   font-size: var(--text-sm);
   margin: 0 auto var(--space-2);
+}
+
+.apply-form-title {
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
+  color: var(--text-primary);
+  text-align: center;
+  margin-top: var(--space-2);
 }
 
 .apply-lang-switch {

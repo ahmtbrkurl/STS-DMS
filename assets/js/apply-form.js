@@ -25,6 +25,12 @@ const STSApplyForm = (function () {
     let html = '';
 
     formDef.fields.forEach(function (f) {
+      // Başlık (bölüm başlığı) — veri toplamaz, sadece görsel ayraçtır
+      if (f.Type === 'Başlık') {
+        html += '<div class="apply-section-heading">' + escapeHtml(f.Label) + '</div>';
+        return;
+      }
+
       const isTwoSided = (f.Type === 'Belge') && (f.TwoSided === true || f.TwoSided === 'TRUE');
       const isVesikalik = (f.Type === 'Fotoğraf') && (f.VesikalikMode === true || f.VesikalikMode === 'TRUE');
       const isRequired = (f.Required === true || f.Required === 'TRUE');
@@ -190,6 +196,7 @@ const STSApplyForm = (function () {
     function validate() {
       for (let i = 0; i < formDef.fields.length; i++) {
         const f = formDef.fields[i];
+        if (f.Type === 'Başlık') continue;
         const isRequired = (f.Required === true || f.Required === 'TRUE');
         if (!isRequired) continue;
         if (options.mode === 'edit') continue; // düzenlemede zorunluluk uygulanmaz (carry-forward)

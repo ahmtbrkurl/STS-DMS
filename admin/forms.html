@@ -21,6 +21,7 @@
   // ALAN varsayılan özellikleri, İMZA dahil
   // ============================================================
   const FIELD_TYPES = [
+    { type: 'Başlık', icon: '📌' },
     { type: 'Metin', icon: '📝' },
     { type: 'Tarih', icon: '📅' },
     { type: 'Telefon', icon: '📱' },
@@ -193,8 +194,20 @@
     const f = fields[selectedIndex];
     const isFileType = FILE_TYPES.indexOf(f.type) !== -1;
     const isDropdown = f.type === 'AçılırListe';
+    const isHeading = f.type === 'Başlık';
 
     let html = '<p class="card-title" style="font-size:14px;">' + STSI18N.t('forms.fieldProperties') + '</p>';
+
+    if (isHeading) {
+      // Başlık (bölüm başlığı) — sadece metin, başka özellik yok
+      html += '<div class="field"><label>' + STSI18N.t('forms.headingText') + '</label>' +
+        '<input type="text" id="prop-label" value="' + escapeAttr(f.label || '') + '" placeholder="örn. Kişisel Bilgiler" oninput="updateSelectedField(\'label\', this.value)"></div>' +
+        '<div style="font-size:11px; color:var(--text-muted); margin-bottom:8px;">' + STSI18N.t('forms.headingHint') + '</div>';
+      html += '<button type="button" class="btn btn-danger" style="width:100%; justify-content:center; margin-top:10px;" onclick="removeField(' + selectedIndex + ')">' +
+        STSI18N.t('forms.removeField') + '</button>';
+      el.innerHTML = html;
+      return;
+    }
 
     html += '<div class="field"><label>' + STSI18N.t('forms.fieldLabel') + '</label>' +
       '<input type="text" id="prop-label" value="' + escapeAttr(f.label || '') + '" oninput="updateSelectedField(\'label\', this.value)"></div>';

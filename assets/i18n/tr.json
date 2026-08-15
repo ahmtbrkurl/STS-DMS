@@ -102,6 +102,9 @@
   "fieldtype.AçılırListe": "Açılır Liste",
   "fieldtype.Onay": "Onay",
   "fieldtype.İmza": "İmza",
+  "fieldtype.Başlık": "Başlık",
+  "forms.headingText": "Başlık Metni",
+  "forms.headingHint": "Bu, formda bir bölüm başlığı olarak görünür (örn. 'Kişisel Bilgiler', 'Belgeler') — aday tarafından doldurulmaz, sadece görsel ayraçtır.",
 
   "campaigns.title": "Kampanyalar",
   "campaigns.subtitle": "Grup ve form bazlı işe alım kampanyaları oluşturun.",
@@ -171,5 +174,25 @@
   "personnel.rosterDesc": "Onaylanmış ve kaydı oluşturulmuş personeller.",
   "personnel.noPersonnel": "Henüz personel kaydı oluşturulmadı.",
   "personnel.allStatuses": "Tüm Durumlar",
-  "personnel.viewFiles": "Belgeleri Gör"
+  "personnel.viewFiles": "Belgeleri Gör",
+
+  "logs.title": "İşlem Logları",
+  "logs.subtitle": "Kim, ne zaman, ne yaptı — tüm işlemler kalıcı olarak kaydedilir.",
+  "logs.allActions": "Tüm İşlemler",
+  "logs.noLogs": "Henüz log kaydı yok.",
+  "logs.timestamp": "Tarih/Saat",
+  "logs.user": "Kullanıcı",
+  "logs.action": "İşlem",
+  "logs.target": "Kayıt",
+  "logs.description": "Açıklama",
+
+  "dashboard.userActivityTitle": "Kullanıcı Aktivitesi",
+  "dashboard.userActivityDesc": "HR kullanıcılarının bugüne kadarki işlem özeti (sadece Admin görebilir).",
+  "dashboard.noActivity": "Henüz kayıtlı bir aktivite yok.",
+  "dashboard.colUser": "Kullanıcı",
+  "dashboard.colTotal": "Toplam İşlem",
+  "dashboard.colCreated": "Oluşturma",
+  "dashboard.colUpdated": "Onay/Güncelleme",
+  "dashboard.colPersonnelCreated": "Personel Oluşturma",
+  "dashboard.colDeleted": "Silme"
 }

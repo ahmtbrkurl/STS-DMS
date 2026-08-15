@@ -12,6 +12,7 @@
 <div class="apply-shell" id="apply-root">
   <div class="apply-header">
     <div class="badge-mark">STS</div>
+    <div id="apply-form-title" class="apply-form-title"></div>
   </div>
   <div class="apply-lang-switch lang-switch" id="lang-switch">
     <button data-lang="TR" onclick="changeLang('TR')">TR</button>
@@ -101,6 +102,8 @@
   }
 
   function renderFormScreen() {
+    document.getElementById('apply-form-title').textContent = currentForm.Name;
+
     const content = document.getElementById('apply-content');
 
     let rejectedHtml = '';
@@ -112,7 +115,6 @@
 
     content.innerHTML =
       '<div class="card">' +
-        '<p class="card-title" style="margin-bottom:2px;">' + escapeHtml(currentForm.Name) + '</p>' +
         '<p class="card-subtitle" data-i18n="apply.editSubtitle" style="margin-bottom:14px;"></p>' +
         rejectedHtml +
         '<div class="apply-error-banner" id="submit-error"></div>' +

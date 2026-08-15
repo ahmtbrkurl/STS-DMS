@@ -357,6 +357,17 @@
     fullRerender();
   }
 
+  async function deletePersonnel(personnelId, name) {
+    if (!confirm(STSI18N.t('common.deleteConfirm') + '\n\n' + name)) return;
+    const result = await STSAPI.call('personnel.delete', { personnelId: personnelId });
+    if (result.ok) {
+      await loadAll();
+      renderPersonnelList();
+    } else {
+      alert(result.error || STSI18N.t('common.error.generic'));
+    }
+  }
+
   function renderPersonnelList() {
     const el = document.getElementById('personnel-list-area');
     if (personnel.length === 0) {
@@ -371,13 +382,14 @@
       const viewBtn = linkedApp
         ? '<button class="btn btn-secondary" style="padding:5px 10px; font-size:12px;" onclick="openDetail(\'' + linkedApp.ApplicationID + '\')" data-i18n="personnel.viewFiles"></button>'
         : '';
+      const deleteBtn = '<button class="btn btn-danger" style="padding:5px 10px; font-size:12px;" onclick="deletePersonnel(\'' + p.PersonnelID + '\', \'' + escapeHtml(p.FullName).replace(/'/g, "\\'") + '\')" data-i18n="common.delete"></button>';
       return '<tr>' +
         '<td><code style="font-size:12px;">' + escapeHtml(p.PersonnelID) + '</code></td>' +
         '<td>' + escapeHtml(p.FullName) + '</td>' +
         '<td>' + escapeHtml(groupName) + '</td>' +
         '<td><span class="badge badge-success">' + escapeHtml(p.Status) + '</span></td>' +
         '<td style="font-size:12px;">' + fmtDate(p.CreatedAt) + '</td>' +
-        '<td>' + viewBtn + '</td>' +
+        '<td style="white-space:nowrap;">' + viewBtn + ' ' + deleteBtn + '</td>' +
       '</tr>';
     }).join('');
 
