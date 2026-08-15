@@ -19,17 +19,16 @@
  *      frontLabel, backLabel, hint, onMerged
  *    })
  *
- * Her iki kamera modu da artık SADECE kılavuz çerçevesinin içini
- * kırpıp kaydediyor (tüm kare değil) — hem gereksiz arka plan gitmiş
- * oluyor hem de sonuç görsel kılavuzla birebir eşleşiyor.
+ * ODAKLAMA (GÜNCEL): Kamera açıldığında sürekli otomatik odaklama
+ * (continuous autofocus) istenir, cihaz destekliyorsa uygulanır.
+ * Çekim butonu kamera aktive olduktan ~1 saniye sonra aktif olur
+ * (otomatik odaklamanın oturması için). Video'ya dokunmak/tıklamak,
+ * destekleyen cihazlarda yeniden odaklamayı tetikler.
  */
 
 const STSIDCapture = (function () {
   let activeStream = null;
 
-  // ============================================================
-  // TEK ÇEKİM (kart/belge veya vesikalık)
-  // ============================================================
   function attach(container, options) {
     const isPortrait = options.guideType === 'portrait';
     render(options.existingPreview || null);
@@ -78,43 +77,63 @@ const STSIDCapture = (function () {
             '<video autoplay playsinline muted class="idcap-video"></video>' +
             (isPortrait ? renderPortraitGuideSvg() : '<div class="idcap-guide"></div>') +
           '</div>' +
-          '<div class="idcap-modal-hint">' + escapeHtml(options.hint || 'Belgeyi çerçeveye hizalayın') + '</div>' +
+          '<div class="idcap-modal-hint">Kamera açılıyor...</div>' +
           '<div class="idcap-modal-actions">' +
             '<button type="button" class="btn btn-secondary idcap-cancel">İptal</button>' +
-            '<button type="button" class="btn btn-primary idcap-shoot">Çek</button>' +
+            '<button type="button" class="btn btn-primary idcap-shoot" disabled>Odaklanıyor...</button>' +
           '</div>' +
         '</div>';
       document.body.appendChild(modal);
 
       const video = modal.querySelector('.idcap-video');
       const hintEl = modal.querySelector('.idcap-modal-hint');
+      const shootBtn = modal.querySelector('.idcap-shoot');
       const facingMode = options.facingMode || (isPortrait ? 'user' : 'environment');
+      let currentTrack = null;
 
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         hintEl.textContent = 'Bu tarayıcı kamera erişimini desteklemiyor. Lütfen dosyadan yükleyin.';
-        modal.querySelector('.idcap-shoot').disabled = true;
+        shootBtn.textContent = 'Çek';
       } else {
         navigator.mediaDevices.getUserMedia({
           video: {
             facingMode: facingMode,
-            width: { ideal: 1920 },
-            height: { ideal: 1440 }
+            width: { ideal: 2560 },
+            height: { ideal: 1920 },
+            // Bazı tarayıcılar (özellikle Chrome/Android) bu ipucunu dikkate alır
+            advanced: [{ focusMode: 'continuous' }]
           },
           audio: false
         })
           .then(function (stream) {
             activeStream = stream;
             video.srcObject = stream;
+            currentTrack = stream.getVideoTracks()[0];
+            tryEnableContinuousFocus(currentTrack);
+
+            hintEl.textContent = 'Odaklanılıyor, sabit tutun...';
+            // Otomatik odaklamanın oturması için kısa bir bekleme —
+            // bu süre boyunca çekim butonu kapalı tutulur.
+            setTimeout(function () {
+              shootBtn.disabled = false;
+              shootBtn.textContent = 'Çek';
+              hintEl.textContent = escapeHtml(options.hint || 'Belgeyi çerçeveye hizalayın');
+            }, 1100);
           })
           .catch(function (err) {
             hintEl.textContent = 'Kameraya erişilemedi (' + err.message + '). Lütfen dosyadan yükleyin.';
-            modal.querySelector('.idcap-shoot').disabled = true;
+            shootBtn.disabled = true;
           });
+
+        // Video'ya dokunmak/tıklamak yeniden odaklamayı dener (destekleyen cihazlarda)
+        video.addEventListener('click', function () {
+          if (currentTrack) refocus(currentTrack, hintEl, options.hint);
+        });
       }
 
       modal.querySelector('.idcap-cancel').addEventListener('click', closeModal);
-      modal.querySelector('.idcap-shoot').addEventListener('click', function () {
-        if (!video.videoWidth) return;
+      shootBtn.addEventListener('click', function () {
+        if (!video.videoWidth || shootBtn.disabled) return;
         const dataUrl = isPortrait ? capturePortraitFrame(video) : captureCardFrame(video);
         const base64 = dataUrl.split(',')[1];
         render(dataUrl);
@@ -132,18 +151,43 @@ const STSIDCapture = (function () {
     }
   }
 
-  // ============================================================
-  // İKİ TARAFLI (ön+arka) — otomatik tek görselde birleştirme
-  // ============================================================
+  // Sürekli otomatik odaklamayı, stream başladıktan sonra da (bazı tarayıcılar
+  // bunu getUserMedia constraint'inde değil, applyConstraints ile kabul eder) dener.
+  function tryEnableContinuousFocus(track) {
+    if (!track || !track.getCapabilities) return;
+    try {
+      const caps = track.getCapabilities();
+      if (caps.focusMode && caps.focusMode.indexOf('continuous') !== -1) {
+        track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(function () {});
+      }
+    } catch (e) { /* desteklenmiyor, sorun değil — cihazın kendi otomatik odaklaması çalışır */ }
+  }
+
+  // Dokunma ile yeniden odaklama — tek seferlik odaklama tetikler (destekleyen cihazlarda)
+  function refocus(track, hintEl, originalHint) {
+    if (!track || !track.getCapabilities) return;
+    try {
+      const caps = track.getCapabilities();
+      if (caps.focusMode && caps.focusMode.indexOf('single-shot') !== -1) {
+        hintEl.textContent = 'Yeniden odaklanılıyor...';
+        track.applyConstraints({ advanced: [{ focusMode: 'single-shot' }] })
+          .then(function () {
+            setTimeout(function () {
+              hintEl.textContent = escapeHtml(originalHint || 'Belgeyi çerçeveye hizalayın');
+              track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(function () {});
+            }, 600);
+          })
+          .catch(function () {});
+      }
+    } catch (e) { /* desteklenmiyor */ }
+  }
+
   function attachTwoSided(container, options) {
     let frontData = null;
     let backData = null;
 
     container.innerHTML =
-      '<div class="idcap-sides">' +
-        '<div class="idcap-front-slot"></div>' +
-        '<div class="idcap-back-slot"></div>' +
-      '</div>' +
+      '<div class="idcap-sides"><div class="idcap-front-slot"></div><div class="idcap-back-slot"></div></div>' +
       '<div class="idcap-merge-status"></div>';
 
     const frontSlot = container.querySelector('.idcap-front-slot');
@@ -151,30 +195,16 @@ const STSIDCapture = (function () {
     const statusEl = container.querySelector('.idcap-merge-status');
 
     attach(frontSlot, {
-      label: options.frontLabel || 'Ön Yüz',
-      hint: options.hint,
-      guideType: 'card',
-      onCapture: function (data) {
-        frontData = data;
-        tryMerge();
-      }
+      label: options.frontLabel || 'Ön Yüz', hint: options.hint, guideType: 'card',
+      onCapture: function (data) { frontData = data; tryMerge(); }
     });
-
     attach(backSlot, {
-      label: options.backLabel || 'Arka Yüz',
-      hint: options.hint,
-      guideType: 'card',
-      onCapture: function (data) {
-        backData = data;
-        tryMerge();
-      }
+      label: options.backLabel || 'Arka Yüz', hint: options.hint, guideType: 'card',
+      onCapture: function (data) { backData = data; tryMerge(); }
     });
 
     function tryMerge() {
-      if (!frontData || !backData) {
-        statusEl.textContent = '';
-        return;
-      }
+      if (!frontData || !backData) { statusEl.textContent = ''; return; }
       statusEl.textContent = 'Birleştiriliyor...';
       mergeStacked(
         'data:' + frontData.mimeType + ';base64,' + frontData.base64,
@@ -188,12 +218,10 @@ const STSIDCapture = (function () {
     }
   }
 
-  // İki görseli dikey olarak (üstte ön, altta arka) tek canvas'ta birleştirir
   function mergeStacked(dataUrlTop, dataUrlBottom, callback) {
     const imgTop = new Image();
     const imgBottom = new Image();
     let loaded = 0;
-
     function onBothLoaded() {
       const width = Math.max(imgTop.width, imgBottom.width);
       const scaleTop = width / imgTop.width;
@@ -201,7 +229,6 @@ const STSIDCapture = (function () {
       const heightTop = imgTop.height * scaleTop;
       const heightBottom = imgBottom.height * scaleBottom;
       const gap = Math.round(width * 0.02);
-
       const canvas = document.createElement('canvas');
       canvas.width = width;
       canvas.height = heightTop + gap + heightBottom;
@@ -210,19 +237,14 @@ const STSIDCapture = (function () {
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(imgTop, 0, 0, width, heightTop);
       ctx.drawImage(imgBottom, 0, heightTop + gap, width, heightBottom);
-
-      callback(canvas.toDataURL('image/jpeg', 0.92));
+      callback(canvas.toDataURL('image/jpeg', 0.95));
     }
-
     imgTop.onload = function () { loaded++; if (loaded === 2) onBothLoaded(); };
     imgBottom.onload = function () { loaded++; if (loaded === 2) onBothLoaded(); };
     imgTop.src = dataUrlTop;
     imgBottom.src = dataUrlBottom;
   }
 
-  // ============================================================
-  // KILAVUZLAR ve KIRPILMIŞ ÇEKİM
-  // ============================================================
   function renderPortraitGuideSvg() {
     return '<div class="idcap-guide-portrait">' +
       '<svg viewBox="0 0 200 280" class="idcap-portrait-svg" preserveAspectRatio="xMidYMid meet">' +
@@ -232,23 +254,12 @@ const STSIDCapture = (function () {
     '</div>';
   }
 
-  /**
-   * Video elementi, CSS'te aspect-ratio:4/3 + object-fit:cover ile
-   * gösteriliyor. Önce bu "kapak kırpması"nı native piksel uzayında
-   * hesaplıyoruz, sonra o görünür kare içindeki kılavuz dikdörtgenini
-   * (genişliğin %82'si, 1.586:1 kart oranı, ortalanmış) buluyoruz ve
-   * SADECE o alanı kırpıp kaydediyoruz.
-   */
   function captureCardFrame(video) {
     const containerAspect = 4 / 3;
     const vw = video.videoWidth, vh = video.videoHeight;
     let cw, ch, cx, cy;
-
-    if (vw / vh > containerAspect) {
-      ch = vh; cw = vh * containerAspect; cx = (vw - cw) / 2; cy = 0;
-    } else {
-      cw = vw; ch = vw / containerAspect; cx = 0; cy = (vh - ch) / 2;
-    }
+    if (vw / vh > containerAspect) { ch = vh; cw = vh * containerAspect; cx = (vw - cw) / 2; cy = 0; }
+    else { cw = vw; ch = vw / containerAspect; cx = 0; cy = (vh - ch) / 2; }
 
     const guideW = cw * 0.82;
     const guideH = guideW / 1.586;
@@ -260,24 +271,15 @@ const STSIDCapture = (function () {
     canvas.height = guideH;
     const ctx = canvas.getContext('2d');
     ctx.drawImage(video, guideX, guideY, guideW, guideH, 0, 0, guideW, guideH);
-    return canvas.toDataURL('image/jpeg', 0.92);
+    return canvas.toDataURL('image/jpeg', 0.95);
   }
 
-  /**
-   * Vesikalık modu: video aspect-ratio:3/4 + object-fit:cover.
-   * Kılavuz kutusu (genişliğin %62'si, yüksekliğin %82'si, ortalanmış)
-   * neyse sadece o alan kırpılıp kaydedilir.
-   */
   function capturePortraitFrame(video) {
     const containerAspect = 3 / 4;
     const vw = video.videoWidth, vh = video.videoHeight;
     let cw, ch, cx, cy;
-
-    if (vw / vh > containerAspect) {
-      ch = vh; cw = vh * containerAspect; cx = (vw - cw) / 2; cy = 0;
-    } else {
-      cw = vw; ch = vw / containerAspect; cx = 0; cy = (vh - ch) / 2;
-    }
+    if (vw / vh > containerAspect) { ch = vh; cw = vh * containerAspect; cx = (vw - cw) / 2; cy = 0; }
+    else { cw = vw; ch = vw / containerAspect; cx = 0; cy = (vh - ch) / 2; }
 
     const guideW = cw * 0.62;
     const guideH = ch * 0.82;
@@ -289,7 +291,7 @@ const STSIDCapture = (function () {
     canvas.height = guideH;
     const ctx = canvas.getContext('2d');
     ctx.drawImage(video, guideX, guideY, guideW, guideH, 0, 0, guideW, guideH);
-    return canvas.toDataURL('image/jpeg', 0.92);
+    return canvas.toDataURL('image/jpeg', 0.95);
   }
 
   function escapeHtml(str) {
