@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STS-DMS — Başvuru</title>
+<link rel="stylesheet" href="../assets/css/tokens.css">
+<link rel="stylesheet" href="../assets/css/apply.css">
+</head>
+<body>
+
+<div class="apply-shell" id="apply-root">
+  <div class="apply-header">
+    <div class="badge-mark">STS</div>
+  </div>
+  <div class="apply-lang-switch lang-switch" id="lang-switch">
+    <button data-lang="TR" onclick="changeLang('TR')">TR</button>
+    <button data-lang="RU" onclick="changeLang('RU')">RU</button>
+    <button data-lang="EN" onclick="changeLang('EN')">EN</button>
+  </div>
+  <div id="apply-content">
+    <div class="empty-state" data-i18n="apply.loading"></div>
+  </div>
+</div>
+
+<script src="../assets/js/i18n.js"></script>
+<script src="../assets/js/id-capture.js"></script>
+<script src="../assets/js/apply-form.js"></script>
+<script>
+  const BASE_URL = 'https://script.google.com/macros/s/AKfycbzztkmZ4T4BbxxrD2-0fxK7I8s77nyBcRA49kfjLg1G7JDe_MQszFnTj-0JjKPIaQJx3g/exec';
+
+  let linkToken = null;
+  let currentForm = null;
+  let formCtl = null;
+
+  async function callApi(payload) {
+    const res = await fetch(BASE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+    const text = await res.text();
+    try { return JSON.parse(text); } catch (e) { return { ok: false, error: 'Sunucudan geçersiz yanıt.' }; }
+  }
+
+  function changeLang(lang) {
+    STSI18N.setLanguage(lang).then(renderCurrentState);
+  }
+
+  function getTokenFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('token');
+  }
+
+  let lastState = 'loading';
+
+  async function init() {
+    await STSI18N.init();
+    STSI18N.applyToDom();
+
+    linkToken = getTokenFromUrl();
+    if (!linkToken) {
+      showBlocked(STSI18N.t('apply.error.noToken'));
+      return;
+    }
+
+    const result = await callApi({ action: 'links.validate', linkToken: linkToken });
+    if (!result.ok) {
+      showBlocked(result.error || STSI18N.t('apply.error.generic'));
+      return;
+    }
+
+    currentForm = result.form;
+    lastState = 'form';
+    renderCurrentState();
+  }
+
+  function renderCurrentState() {
+    if (lastState === 'form' && currentForm) {
+      renderFormScreen();
+    }
+  }
+
+  function showBlocked(message) {
+    lastState = 'blocked';
+    document.getElementById('apply-content').innerHTML =
+      '<div class="apply-blocked-screen">' +
+        '<div class="apply-success-icon" style="background:var(--status-danger-bg); color:var(--status-danger-text);">⚠</div>' +
+        '<p style="font-size:15px; color:var(--text-primary); font-weight:600; margin-bottom:6px;">' + escapeHtml(message) + '</p>' +
+      '</div>';
+  }
+
+  function renderFormScreen() {
+    const content = document.getElementById('apply-content');
+    content.innerHTML =
+      '<div class="card">' +
+        '<p class="card-title" style="margin-bottom:2px;">' + escapeHtml(currentForm.Name) + '</p>' +
+        '<div class="apply-error-banner" id="submit-error"></div>' +
+        '<div id="form-fields"></div>' +
+        '<div class="apply-kvkk-box">' +
+          '<div class="apply-kvkk-text" data-i18n="apply.kvkkText"></div>' +
+          '<label class="apply-checkbox-row">' +
+            '<input type="checkbox" id="kvkk-consent">' +
+            '<span data-i18n="apply.kvkkAccept"></span>' +
+          '</label>' +
+        '</div>' +
+        '<button class="btn btn-primary" id="submit-btn" style="width:100%; justify-content:center;" data-i18n="apply.submit"></button>' +
+      '</div>';
+
+    STSI18N.applyToDom();
+
+    const fieldsContainer = document.getElementById('form-fields');
+    formCtl = STSApplyForm.render(fieldsContainer, currentForm, { mode: 'new' });
+
+    document.getElementById('submit-btn').addEventListener('click', submitApplication);
+  }
+
+  async function submitApplication() {
+    const errorBox = document.getElementById('submit-error');
+    errorBox.classList.remove('show');
+
+    const kvkkConsent = document.getElementById('kvkk-consent').checked;
+    if (!kvkkConsent) {
+      errorBox.textContent = STSI18N.t('apply.kvkkRequired');
+      errorBox.classList.add('show');
+      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+      return;
+    }
+
+    const validationError = formCtl.validate();
+    if (validationError) {
+      errorBox.textContent = validationError;
+      errorBox.classList.add('show');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    const submitBtn = document.getElementById('submit-btn');
+    submitBtn.disabled = true;
+    submitBtn.textContent = STSI18N.t('apply.submitting');
+
+    const { formData, files } = formCtl.collect();
+
+    const result = await callApi({
+      action: 'application.submit',
+      linkToken: linkToken,
+      formData: formData,
+      files: files,
+      kvkkConsent: kvkkConsent
+    });
+
+    if (result.ok) {
+      showSuccess(result);
+    } else {
+      submitBtn.disabled = false;
+      submitBtn.textContent = STSI18N.t('apply.submit');
+      errorBox.textContent = result.error || STSI18N.t('apply.error.generic');
+      errorBox.classList.add('show');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }
+
+  function showSuccess(result) {
+    lastState = 'success';
+    const editUrl = result.editUrl;
+    document.getElementById('apply-content').innerHTML =
+      '<div class="card apply-success-screen">' +
+        '<div class="apply-success-icon">✓</div>' +
+        '<p style="font-size:16px; font-weight:700; margin-bottom:8px;" data-i18n="apply.successTitle"></p>' +
+        '<p style="font-size:13px; color:var(--text-secondary); margin-bottom:14px;" data-i18n="apply.successDesc"></p>' +
+        '<div class="apply-code-box">' + escapeHtml(result.applicationId) + '</div>' +
+        '<p style="font-size:12px; color:var(--text-secondary); margin:14px 0 6px;" data-i18n="apply.editLinkLabel"></p>' +
+        '<div style="display:flex; gap:8px; align-items:center;">' +
+          '<input type="text" readonly value="' + editUrl + '" id="edit-url-box" style="flex:1; padding:8px; border-radius:6px; border:1px solid var(--surface-border); font-size:11px; font-family:monospace;">' +
+          '<button class="btn btn-secondary" onclick="copyEditUrl()" data-i18n="common.copy"></button>' +
+        '</div>' +
+        '<p style="font-size:11px; color:var(--text-muted); margin-top:14px;" data-i18n="apply.editLinkHint"></p>' +
+      '</div>';
+    STSI18N.applyToDom();
+  }
+
+  function copyEditUrl() {
+    const el = document.getElementById('edit-url-box');
+    el.select();
+    navigator.clipboard.writeText(el.value).catch(() => document.execCommand('copy'));
+    alert(STSI18N.t('common.copied'));
+  }
+
+  function escapeHtml(str) {
+    return String(str || '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  }
+
+  init();
+</script>
+
+</body>
+</html>

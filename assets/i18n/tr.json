@@ -127,5 +127,23 @@
   "links.noLinks": "Henüz başvuru linki oluşturulmadı.",
   "links.linkCode": "Başvuru Kodu",
   "links.usage": "Kullanım",
-  "links.selectCampaignFirst": "Lütfen önce bir kampanya seçin."
+  "links.selectCampaignFirst": "Lütfen önce bir kampanya seçin.",
+
+  "apply.loading": "Yükleniyor...",
+  "apply.error.noToken": "Geçersiz bağlantı. Lütfen size gönderilen linki tam olarak kullanın.",
+  "apply.error.generic": "Bir hata oluştu, lütfen daha sonra tekrar deneyin.",
+  "apply.submit": "Başvuruyu Gönder",
+  "apply.submitting": "Gönderiliyor...",
+  "apply.saveChanges": "Değişiklikleri Kaydet",
+  "apply.kvkkAccept": "Kişisel Verilerin Korunması Kanunu (KVKK) kapsamındaki Aydınlatma Metni'ni okudum, kişisel verilerimin işlenmesine açık rıza veriyorum.",
+  "apply.kvkkRequired": "Devam etmek için KVKK Aydınlatma Metni'ni onaylamanız gerekiyor.",
+  "apply.kvkkText": "[HR: Bu alana şirketinizin gerçek KVKK Aydınlatma Metni'ni girin — bu sadece yer tutucudur.] Bu başvuru formunda topladığımız kişisel verileriniz (ad, soyad, iletişim bilgileri, kimlik bilgileri ve yüklediğiniz belgeler), 6698 sayılı Kişisel Verilerin Korunması Kanunu kapsamında, işe alım sürecinin yürütülmesi amacıyla işlenecek ve saklanacaktır.",
+  "apply.successTitle": "Başvurunuz alındı",
+  "apply.successDesc": "Başvurunuz başarıyla merkeze ulaştı. Aşağıdaki başvuru kodunuzu ve düzenleme linkinizi saklayın.",
+  "apply.editLinkLabel": "Düzenleme Linkiniz (bilgilerinizi güncellemek isterseniz)",
+  "apply.editLinkHint": "Bu link, başvuru linkinin geçerlilik süresi boyunca çalışır. Süre dolduktan sonra değişiklik yapamazsınız.",
+  "apply.editSubtitle": "Sadece değiştirmek istediğiniz alanları doldurun, gerisini boş bırakabilirsiniz.",
+  "apply.rejectedGeneral": "reddedildi, lütfen yeniden yükleyin.",
+  "apply.editSuccessTitle": "Güncelleme kaydedildi",
+  "apply.editSuccessDesc": "Başvurunuz güncellendi. İnceleme sonrası size dönüş yapılacaktır."
 }
