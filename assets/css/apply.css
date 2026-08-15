@@ -162,6 +162,10 @@
   justify-content: center;
 }
 
+.idcap-modal-actions {
+  flex-wrap: wrap;
+}
+
 /* ============ VESİKALIK MODU (kılavuzlu selfie) ============ */
 .idcap-video-portrait {
   aspect-ratio: 3 / 4;
