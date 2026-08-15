@@ -192,3 +192,10 @@
   aspect-ratio: 3 / 4;
   object-fit: cover;
 }
+
+.idcap-merge-status {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  margin-top: var(--space-2);
+  min-height: 14px;
+}
