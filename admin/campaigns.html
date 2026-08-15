@@ -19,6 +19,7 @@
   let forms = [];
   let campaigns = [];
   let editingCampaignId = null;
+  let showInactive = false;
 
   (async function () {
     await STSI18N.init();
@@ -71,7 +72,10 @@
             '<p class="card-title" data-i18n="campaigns.existing"></p>' +
             '<p class="card-subtitle" data-i18n="campaigns.existingDesc"></p>' +
           '</div>' +
-          '<button class="btn btn-secondary" data-i18n="forms.refresh" onclick="refreshList()"></button>' +
+          '<div style="display:flex; align-items:center; gap:12px;">' +
+            '<label class="checkbox-row" style="margin:0;"><input type="checkbox" id="show-inactive-toggle" ' + (showInactive ? 'checked' : '') + ' onchange="toggleShowInactive()"> <span data-i18n="common.showInactive"></span></label>' +
+            '<button class="btn btn-secondary" data-i18n="forms.refresh" onclick="refreshList()"></button>' +
+          '</div>' +
         '</div>' +
         '<div id="campaigns-list-area"></div>' +
       '</div>';
@@ -148,6 +152,22 @@
     fullRerender();
   }
 
+  function toggleShowInactive() {
+    showInactive = document.getElementById('show-inactive-toggle').checked;
+    renderCampaignsList();
+  }
+
+  async function deleteCampaign(campaignId, name) {
+    if (!confirm(STSI18N.t('common.deleteConfirm') + '\n\n' + name)) return;
+    const result = await STSAPI.call('campaigns.delete', { campaignId: campaignId });
+    if (result.ok) {
+      await loadAll();
+      renderCampaignsList();
+    } else {
+      alert(result.error || STSI18N.t('common.error.generic'));
+    }
+  }
+
   async function toggleCampaignStatus(campaignId, newStatus) {
     const result = await STSAPI.call('campaigns.update', { campaignId: campaignId, status: newStatus });
     if (result.ok) { await loadAll(); renderCampaignsList(); }
@@ -161,35 +181,48 @@
 
   function renderCampaignsList() {
     const el = document.getElementById('campaigns-list-area');
-    if (campaigns.length === 0) {
+    const visibleCampaigns = showInactive ? campaigns : campaigns.filter(c => c.Status === 'Aktif');
+
+    if (visibleCampaigns.length === 0) {
       el.innerHTML = '<div class="empty-state" data-i18n="campaigns.noCampaigns"></div>';
       STSI18N.applyToDom();
       return;
     }
-    const rows = campaigns.map(c => {
+    const rows = visibleCampaigns.map(c => {
       const groupName = (groups.find(g => g.GroupID === c.GroupID) || {}).Name || c.GroupID;
       const formName = (forms.find(f => f.FormID === c.FormID) || {}).Name || c.FormID;
       const badgeClass = c.Status === 'Aktif' ? 'badge-success' : 'badge-neutral';
+      const deleteBtn = c.Status === 'Pasif'
+        ? '<button class="btn btn-danger" style="padding:5px 10px; font-size:12px;" onclick="deleteCampaign(\'' + c.CampaignID + '\', \'' + escapeHtml(c.Name).replace(/'/g, "\\'") + '\')" data-i18n="common.delete"></button>'
+        : '';
       return '<tr>' +
         '<td>' + escapeHtml(c.Name) + '</td>' +
         '<td>' + escapeHtml(groupName) + '</td>' +
         '<td>' + escapeHtml(formName) + '</td>' +
         '<td>' + (c.StartDate || '').substring(0, 10) + ' → ' + (c.EndDate || '').substring(0, 10) + '</td>' +
         '<td><span class="badge ' + badgeClass + '">' + c.Status + '</span></td>' +
-        '<td>' +
+        '<td style="font-size:12px; color:var(--text-secondary);">' + escapeHtml(c.CreatedBy || '') + '<br>' + fmtDateShort(c.CreatedAt) + '</td>' +
+        '<td style="white-space:nowrap;">' +
           '<button class="btn btn-secondary" style="padding:5px 10px; font-size:12px;" onclick="editCampaign(\'' + c.CampaignID + '\')">' + STSI18N.t('common.edit') + '</button> ' +
           '<button class="btn btn-secondary" style="padding:5px 10px; font-size:12px;" onclick="toggleCampaignStatus(\'' + c.CampaignID + '\', \'' + (c.Status === 'Aktif' ? 'Pasif' : 'Aktif') + '\')">' +
             (c.Status === 'Aktif' ? STSI18N.t('common.inactive') : STSI18N.t('common.active')) +
-          '</button>' +
+          '</button> ' + deleteBtn +
         '</td>' +
       '</tr>';
     }).join('');
 
     el.innerHTML = '<table class="data-table"><thead><tr>' +
       '<th data-i18n="common.name"></th><th data-i18n="campaigns.group"></th><th data-i18n="campaigns.form"></th>' +
-      '<th data-i18n="campaigns.dateRange"></th><th data-i18n="common.status"></th><th data-i18n="common.actions"></th>' +
+      '<th data-i18n="campaigns.dateRange"></th><th data-i18n="common.status"></th><th data-i18n="common.createdBy"></th><th data-i18n="common.actions"></th>' +
       '</tr></thead><tbody>' + rows + '</tbody></table>';
     STSI18N.applyToDom();
+  }
+
+  function fmtDateShort(d) {
+    if (!d) return '—';
+    const date = new Date(d);
+    if (isNaN(date.getTime())) return '—';
+    return date.toLocaleDateString();
   }
 
   function escapeHtml(str) {

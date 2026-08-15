@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STS-DMS — Personeller</title>
+<link rel="stylesheet" href="../assets/css/tokens.css">
+<link rel="stylesheet" href="../assets/css/admin.css">
+</head>
+<body>
+
+<div id="app-shell"></div>
+
+<script src="../assets/js/i18n.js"></script>
+<script src="../assets/js/api.js"></script>
+<script src="../assets/js/layout.js"></script>
+<script>
+  let applications = [];
+  let personnel = [];
+  let links = [];
+  let campaigns = [];
+  let groups = [];
+  let forms = [];
+  let openApplicationId = null;
+  let openApplicationDetail = null;
+  let openApplicationFormDef = null;
+
+  const DOC_STATUSES = ['Bekliyor', 'Eksik', 'İnceleniyor', 'Onaylandı', 'Reddedildi'];
+  const APP_STATUSES = ['Bekliyor', 'İnceleniyor', 'Onaylandı', 'Reddedildi'];
+
+  (async function () {
+    await STSI18N.init();
+    STSLayout.render({ activeNav: 'personnel', eyebrow: 'dashboard.eyebrow', title: 'personnel.title' });
+    STSI18N.onChange(fullRerender);
+    await loadAll();
+    fullRerender();
+  })();
+
+  async function loadAll() {
+    const [a, p, l, c, g, f] = await Promise.all([
+      STSAPI.call('applications.list'),
+      STSAPI.call('personnel.list'),
+      STSAPI.call('links.list'),
+      STSAPI.call('campaigns.list'),
+      STSAPI.call('groups.list'),
+      STSAPI.call('forms.list')
+    ]);
+    applications = a.ok ? a.data : [];
+    personnel = p.ok ? p.data : [];
+    links = l.ok ? l.data : [];
+    campaigns = c.ok ? c.data : [];
+    groups = g.ok ? g.data : [];
+    forms = f.ok ? f.data : [];
+  }
+
+  function resolveGroupForApplication(app) {
+    const link = links.find(l => l.LinkCode === app.LinkCode);
+    if (!link) return null;
+    const campaign = campaigns.find(c => c.CampaignID === link.CampaignID);
+    if (!campaign) return null;
+    return { campaign: campaign, group: groups.find(g => g.GroupID === campaign.GroupID) };
+  }
+
+  function fullRerender() {
+    const content = document.getElementById('page-content');
+    content.innerHTML =
+      '<div class="card">' +
+        '<div class="card-header">' +
+          '<div>' +
+            '<p class="card-title" data-i18n="personnel.applicationsTitle"></p>' +
+            '<p class="card-subtitle" data-i18n="personnel.applicationsDesc"></p>' +
+          '</div>' +
+          '<button class="btn btn-secondary" data-i18n="forms.refresh" onclick="refreshAll()"></button>' +
+        '</div>' +
+        '<div id="applications-list-area"></div>' +
+      '</div>' +
+      '<div id="detail-area"></div>' +
+      '<div class="card">' +
+        '<div class="card-header">' +
+          '<div>' +
+            '<p class="card-title" data-i18n="personnel.rosterTitle"></p>' +
+            '<p class="card-subtitle" data-i18n="personnel.rosterDesc"></p>' +
+          '</div>' +
+        '</div>' +
+        '<div id="personnel-list-area"></div>' +
+      '</div>';
+
+    STSI18N.applyToDom();
+    renderApplicationsList();
+    renderPersonnelList();
+    if (openApplicationId) renderDetail();
+  }
+
+  async function refreshAll() {
+    await loadAll();
+    if (openApplicationId) await loadDetail(openApplicationId);
+    fullRerender();
+  }
+
+  function statusBadgeClass(status) {
+    if (status === 'Onaylandı') return 'badge-success';
+    if (status === 'Reddedildi') return 'badge-danger';
+    if (status === 'İnceleniyor') return 'badge-info';
+    if (status === 'Eksik') return 'badge-warning';
+    return 'badge-neutral';
+  }
+
+  function renderApplicationsList() {
+    const el = document.getElementById('applications-list-area');
+    if (applications.length === 0) {
+      el.innerHTML = '<div class="empty-state" data-i18n="personnel.noApplications"></div>';
+      STSI18N.applyToDom();
+      return;
+    }
+
+    const sorted = applications.slice().sort((a, b) => new Date(b.SubmittedAt) - new Date(a.SubmittedAt));
+
+    const rows = sorted.map(app => {
+      const resolved = resolveGroupForApplication(app);
+      const groupName = resolved && resolved.group ? resolved.group.Name : '—';
+      const displayName = (app.FolderName || '').replace(/_/g, ' ');
+      const badgeClass = statusBadgeClass(app.Status);
+      const personnelBadge = app.PersonnelID ? ' <span class="badge badge-info">' + escapeHtml(app.PersonnelID) + '</span>' : '';
+
+      return '<tr>' +
+        '<td>' + escapeHtml(displayName) + (Number(app.VersionNumber) > 1 ? ' <span class="badge badge-neutral">v' + app.VersionNumber + '</span>' : '') + '</td>' +
+        '<td>' + escapeHtml(groupName) + '</td>' +
+        '<td style="font-size:12px;">' + fmtDate(app.SubmittedAt) + '</td>' +
+        '<td><span class="badge ' + badgeClass + '">' + app.Status + '</span>' + personnelBadge + '</td>' +
+        '<td><button class="btn btn-secondary" style="padding:5px 10px; font-size:12px;" onclick="openDetail(\'' + app.ApplicationID + '\')" data-i18n="personnel.viewDetail"></button></td>' +
+      '</tr>';
+    }).join('');
+
+    el.innerHTML = '<table class="data-table"><thead><tr>' +
+      '<th data-i18n="personnel.candidate"></th><th data-i18n="campaigns.group"></th><th data-i18n="personnel.submittedAt"></th>' +
+      '<th data-i18n="common.status"></th><th data-i18n="common.actions"></th>' +
+      '</tr></thead><tbody>' + rows + '</tbody></table>';
+    STSI18N.applyToDom();
+  }
+
+  async function openDetail(applicationId) {
+    openApplicationId = applicationId;
+    await loadDetail(applicationId);
+    renderDetail();
+    document.getElementById('detail-area').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  async function loadDetail(applicationId) {
+    const result = await STSAPI.call('applications.get', { applicationId: applicationId });
+    if (!result.ok) { alert(result.error); return; }
+    openApplicationDetail = result.data;
+
+    const resolved = resolveGroupForApplication(openApplicationDetail);
+    if (resolved && resolved.campaign) {
+      const formResult = await STSAPI.call('forms.get', { formId: resolved.campaign.FormID });
+      openApplicationFormDef = formResult.ok ? formResult.data : null;
+    } else {
+      openApplicationFormDef = null;
+    }
+  }
+
+  function closeDetail() {
+    openApplicationId = null;
+    openApplicationDetail = null;
+    openApplicationFormDef = null;
+    document.getElementById('detail-area').innerHTML = '';
+  }
+
+  function renderDetail() {
+    const el = document.getElementById('detail-area');
+    if (!openApplicationDetail) { el.innerHTML = ''; return; }
+
+    const app = openApplicationDetail;
+    const formData = JSON.parse(app.FormDataJSON || '{}');
+    const fieldMap = {};
+    if (openApplicationFormDef) {
+      openApplicationFormDef.fields.forEach(f => { fieldMap[f.FieldID] = f; });
+    }
+
+    const FILE_TYPES = ['Belge', 'Fotoğraf', 'İmza'];
+    let dataRowsHtml = '';
+    Object.keys(formData).forEach(fieldId => {
+      const field = fieldMap[fieldId];
+      if (field && FILE_TYPES.indexOf(field.Type) !== -1) return;
+      const label = field ? field.Label : fieldId;
+      const value = formData[fieldId];
+      if (value === '' || value === undefined) return;
+      dataRowsHtml += '<div class="detail-data-row"><span class="detail-data-label">' + escapeHtml(label) + '</span><span class="detail-data-value">' + escapeHtml(String(value)) + '</span></div>';
+    });
+
+    const currentDocs = (app.documents || []).filter(d => d.IsCurrent === true);
+    const combinedDoc = currentDocs.find(d => d.DocType === 'Combined');
+    const individualDocs = currentDocs.filter(d => d.DocType === 'Individual');
+
+    let docsHtml = '';
+    if (combinedDoc) {
+      docsHtml += '<div class="detail-doc-row">' +
+        '<div class="detail-doc-info">📄 <strong>' + STSI18N.t('personnel.combinedPdf') + '</strong></div>' +
+        '<a class="btn btn-secondary" style="padding:5px 10px; font-size:12px;" href="https://drive.google.com/file/d/' + combinedDoc.DriveFileID + '/view" target="_blank">' + STSI18N.t('personnel.viewFile') + '</a>' +
+      '</div>';
+    }
+
+    individualDocs.forEach(d => {
+      const field = fieldMap[d.FieldID];
+      const label = field ? (field.FileLabel || field.Label) : d.FileName;
+      docsHtml += '<div class="detail-doc-row">' +
+        '<div class="detail-doc-info">' + escapeHtml(label) + '<br><span class="badge ' + statusBadgeClass(d.Status) + '" style="margin-top:4px;">' + d.Status + '</span></div>' +
+        '<div style="display:flex; gap:6px; align-items:center;">' +
+          '<a class="btn btn-secondary" style="padding:5px 10px; font-size:12px;" href="https://drive.google.com/file/d/' + d.DriveFileID + '/view" target="_blank">' + STSI18N.t('personnel.viewFile') + '</a>' +
+          '<select class="doc-status-select" onchange="updateDocStatus(\'' + d.DocumentID + '\', this.value)">' +
+            DOC_STATUSES.map(s => '<option value="' + s + '"' + (s === d.Status ? ' selected' : '') + '>' + s + '</option>').join('') +
+          '</select>' +
+        '</div>' +
+      '</div>';
+    });
+
+    const canCreatePersonnel = app.Status === 'Onaylandı' && !app.PersonnelID;
+
+    el.innerHTML =
+      '<div class="card" style="border-color:var(--brand-primary);">' +
+        '<div class="card-header">' +
+          '<div>' +
+            '<p class="card-title">' + escapeHtml((app.FolderName || '').replace(/_/g, ' ')) + '</p>' +
+            '<p class="card-subtitle">' + escapeHtml(app.ApplicationID) + ' — v' + app.VersionNumber + '</p>' +
+          '</div>' +
+          '<button class="btn btn-secondary" onclick="closeDetail()" data-i18n="personnel.closeDetail"></button>' +
+        '</div>' +
+
+        '<div style="display:flex; align-items:center; gap:10px; margin-bottom:20px;">' +
+          '<label style="font-size:13px; font-weight:600; margin:0;" data-i18n="personnel.applicationStatus"></label>' +
+          '<select class="doc-status-select" onchange="updateApplicationStatus(this.value)">' +
+            APP_STATUSES.map(s => '<option value="' + s + '"' + (s === app.Status ? ' selected' : '') + '>' + s + '</option>').join('') +
+          '</select>' +
+          (canCreatePersonnel ? '<button class="btn btn-primary" onclick="createPersonnel()" data-i18n="personnel.createPersonnel"></button>' : '') +
+          (app.PersonnelID ? '<span class="badge badge-info">' + STSI18N.t('personnel.linkedTo') + ': ' + escapeHtml(app.PersonnelID) + '</span>' : '') +
+        '</div>' +
+
+        '<p class="card-title" style="font-size:14px;" data-i18n="personnel.formData"></p>' +
+        '<div class="detail-data-grid">' + (dataRowsHtml || '<p style="font-size:13px; color:var(--text-muted);">—</p>') + '</div>' +
+
+        '<p class="card-title" style="font-size:14px; margin-top:20px;" data-i18n="personnel.documents"></p>' +
+        '<div class="detail-doc-list">' + (docsHtml || '<p style="font-size:13px; color:var(--text-muted);">—</p>') + '</div>' +
+      '</div>';
+
+    STSI18N.applyToDom();
+  }
+
+  async function updateDocStatus(documentId, status) {
+    const result = await STSAPI.call('documents.updateStatus', { documentId: documentId, status: status });
+    if (!result.ok) { alert(result.error || STSI18N.t('common.error.generic')); return; }
+    await loadDetail(openApplicationId);
+    renderDetail();
+  }
+
+  async function updateApplicationStatus(status) {
+    const result = await STSAPI.call('applications.updateStatus', { applicationId: openApplicationId, status: status });
+    if (!result.ok) { alert(result.error || STSI18N.t('common.error.generic')); return; }
+    await loadAll();
+    await loadDetail(openApplicationId);
+    fullRerender();
+  }
+
+  async function createPersonnel() {
+    const result = await STSAPI.call('personnel.createFromApplication', { applicationId: openApplicationId });
+    if (!result.ok) { alert(result.error || STSI18N.t('common.error.generic')); return; }
+    await loadAll();
+    await loadDetail(openApplicationId);
+    fullRerender();
+  }
+
+  function renderPersonnelList() {
+    const el = document.getElementById('personnel-list-area');
+    if (personnel.length === 0) {
+      el.innerHTML = '<div class="empty-state" data-i18n="personnel.noPersonnel"></div>';
+      STSI18N.applyToDom();
+      return;
+    }
+    const rows = personnel.map(p => {
+      const groupName = (groups.find(g => g.GroupID === p.GroupID) || {}).Name || p.GroupID;
+      return '<tr>' +
+        '<td><code style="font-size:12px;">' + escapeHtml(p.PersonnelID) + '</code></td>' +
+        '<td>' + escapeHtml(p.FullName) + '</td>' +
+        '<td>' + escapeHtml(groupName) + '</td>' +
+        '<td><span class="badge badge-success">' + escapeHtml(p.Status) + '</span></td>' +
+        '<td style="font-size:12px;">' + fmtDate(p.CreatedAt) + '</td>' +
+      '</tr>';
+    }).join('');
+
+    el.innerHTML = '<table class="data-table"><thead><tr>' +
+      '<th>ID</th><th data-i18n="common.name"></th><th data-i18n="campaigns.group"></th>' +
+      '<th data-i18n="common.status"></th><th data-i18n="common.createdAt"></th>' +
+      '</tr></thead><tbody>' + rows + '</tbody></table>';
+    STSI18N.applyToDom();
+  }
+
+  function fmtDate(d) {
+    if (!d) return '—';
+    const date = new Date(d);
+    if (isNaN(date.getTime())) return '—';
+    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function escapeHtml(str) {
+    return String(str || '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  }
+</script>
+
+<style>
+  .detail-data-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:10px 20px; }
+  .detail-data-row { display:flex; flex-direction:column; padding:8px 0; border-bottom:1px solid var(--surface-border); }
+  .detail-data-label { font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.03em; margin-bottom:2px; }
+  .detail-data-value { font-size:13px; color:var(--text-primary); font-weight:500; }
+  .detail-doc-list { display:flex; flex-direction:column; gap:8px; }
+  .detail-doc-row { display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border:1px solid var(--surface-border); border-radius:8px; gap:10px; flex-wrap:wrap; }
+  .detail-doc-info { font-size:13px; color:var(--text-primary); }
+  .doc-status-select { padding:6px 8px; border-radius:6px; border:1px solid var(--surface-border); font-size:12px; }
+</style>
+
+</body>
+</html>

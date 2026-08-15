@@ -51,6 +51,9 @@
   "common.confirm": "Onayla",
   "common.copy": "Kopyala",
   "common.copied": "Kopyalandı",
+  "common.createdBy": "Oluşturan",
+  "common.showInactive": "Pasifleri Göster",
+  "common.deleteConfirm": "Bu kaydı kalıcı olarak silmek istediğinize emin misiniz? Bu işlem geri alınamaz.",
 
   "forms.title": "Form Tasarımı",
   "forms.subtitle": "Kod yazmadan alanları ve belgeleri tanımlayın.",
@@ -134,6 +137,7 @@
   "apply.error.generic": "Bir hata oluştu, lütfen daha sonra tekrar deneyin.",
   "apply.submit": "Başvuruyu Gönder",
   "apply.submitting": "Gönderiliyor...",
+  "apply.uploading": "Yükleniyor",
   "apply.saveChanges": "Değişiklikleri Kaydet",
   "apply.kvkkAccept": "Kişisel Verilerin Korunması Kanunu (KVKK) kapsamındaki Aydınlatma Metni'ni okudum, kişisel verilerimin işlenmesine açık rıza veriyorum.",
   "apply.kvkkRequired": "Devam etmek için KVKK Aydınlatma Metni'ni onaylamanız gerekiyor.",
@@ -145,5 +149,24 @@
   "apply.editSubtitle": "Sadece değiştirmek istediğiniz alanları doldurun, gerisini boş bırakabilirsiniz.",
   "apply.rejectedGeneral": "reddedildi, lütfen yeniden yükleyin.",
   "apply.editSuccessTitle": "Güncelleme kaydedildi",
-  "apply.editSuccessDesc": "Başvurunuz güncellendi. İnceleme sonrası size dönüş yapılacaktır."
+  "apply.editSuccessDesc": "Başvurunuz güncellendi. İnceleme sonrası size dönüş yapılacaktır.",
+
+  "personnel.title": "Personeller",
+  "personnel.applicationsTitle": "Başvurular",
+  "personnel.applicationsDesc": "Başvuruları, belge durumlarını ve kayıt numaralarını görüntüleyin.",
+  "personnel.candidate": "Aday",
+  "personnel.submittedAt": "Gönderim Tarihi",
+  "personnel.viewDetail": "Detay Gör",
+  "personnel.closeDetail": "Kapat",
+  "personnel.noApplications": "Henüz başvuru yok.",
+  "personnel.applicationStatus": "Başvuru Durumu:",
+  "personnel.createPersonnel": "+ Personel Oluştur",
+  "personnel.linkedTo": "Personel",
+  "personnel.formData": "Form Bilgileri",
+  "personnel.documents": "Belgeler",
+  "personnel.combinedPdf": "Birleşik Başvuru PDF'i",
+  "personnel.viewFile": "Görüntüle",
+  "personnel.rosterTitle": "Personel Listesi",
+  "personnel.rosterDesc": "Onaylanmış ve kaydı oluşturulmuş personeller.",
+  "personnel.noPersonnel": "Henüz personel kaydı oluşturulmadı."
 }

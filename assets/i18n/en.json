@@ -51,6 +51,9 @@
   "common.confirm": "Confirm",
   "common.copy": "Copy",
   "common.copied": "Copied",
+  "common.createdBy": "Created By",
+  "common.showInactive": "Show Inactive",
+  "common.deleteConfirm": "Are you sure you want to permanently delete this record? This cannot be undone.",
 
   "forms.title": "Form Builder",
   "forms.subtitle": "Define fields and documents without writing code.",
@@ -134,6 +137,7 @@
   "apply.error.generic": "Something went wrong, please try again later.",
   "apply.submit": "Submit Application",
   "apply.submitting": "Submitting...",
+  "apply.uploading": "Uploading",
   "apply.saveChanges": "Save Changes",
   "apply.kvkkAccept": "I have read the Personal Data Protection Notice and give explicit consent for the processing of my personal data.",
   "apply.kvkkRequired": "You must accept the Personal Data Protection Notice to continue.",
@@ -145,5 +149,24 @@
   "apply.editSubtitle": "Only fill in the fields you want to change — you can leave the rest blank.",
   "apply.rejectedGeneral": "was rejected, please re-upload.",
   "apply.editSuccessTitle": "Update saved",
-  "apply.editSuccessDesc": "Your application has been updated. We will get back to you after review."
+  "apply.editSuccessDesc": "Your application has been updated. We will get back to you after review.",
+
+  "personnel.title": "Personnel",
+  "personnel.applicationsTitle": "Applications",
+  "personnel.applicationsDesc": "View applications, document statuses, and registration numbers.",
+  "personnel.candidate": "Candidate",
+  "personnel.submittedAt": "Submitted At",
+  "personnel.viewDetail": "View Detail",
+  "personnel.closeDetail": "Close",
+  "personnel.noApplications": "No applications yet.",
+  "personnel.applicationStatus": "Application Status:",
+  "personnel.createPersonnel": "+ Create Personnel",
+  "personnel.linkedTo": "Personnel",
+  "personnel.formData": "Form Data",
+  "personnel.documents": "Documents",
+  "personnel.combinedPdf": "Combined Application PDF",
+  "personnel.viewFile": "View",
+  "personnel.rosterTitle": "Personnel Roster",
+  "personnel.rosterDesc": "Approved and registered personnel.",
+  "personnel.noPersonnel": "No personnel records created yet."
 }

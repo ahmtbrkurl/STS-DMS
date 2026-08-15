@@ -21,6 +21,7 @@
   let groups = [];
   let forms = [];
   let links = [];
+  let showInactive = false;
 
   (async function () {
     await STSI18N.init();
@@ -71,7 +72,10 @@
             '<p class="card-title" data-i18n="links.existing"></p>' +
             '<p class="card-subtitle" data-i18n="links.existingDesc"></p>' +
           '</div>' +
-          '<button class="btn btn-secondary" data-i18n="forms.refresh" onclick="refreshList()"></button>' +
+          '<div style="display:flex; align-items:center; gap:12px;">' +
+            '<label class="checkbox-row" style="margin:0;"><input type="checkbox" id="show-inactive-toggle" ' + (showInactive ? 'checked' : '') + ' onchange="toggleShowInactive()"> <span data-i18n="common.showInactive"></span></label>' +
+            '<button class="btn btn-secondary" data-i18n="forms.refresh" onclick="refreshList()"></button>' +
+          '</div>' +
         '</div>' +
         '<div id="links-list-area"></div>' +
       '</div>';
@@ -128,6 +132,22 @@
     });
   }
 
+  function toggleShowInactive() {
+    showInactive = document.getElementById('show-inactive-toggle').checked;
+    renderLinksList();
+  }
+
+  async function deleteLink(linkCode) {
+    if (!confirm(STSI18N.t('common.deleteConfirm') + '\n\n' + linkCode)) return;
+    const result = await STSAPI.call('links.delete', { linkCode: linkCode });
+    if (result.ok) {
+      await loadAll();
+      renderLinksList();
+    } else {
+      alert(result.error || STSI18N.t('common.error.generic'));
+    }
+  }
+
   async function toggleLinkStatus(linkCode, newStatus) {
     const result = await STSAPI.call('links.toggle', { linkCode: linkCode, status: newStatus });
     if (result.ok) { await loadAll(); renderLinksList(); }
@@ -141,13 +161,15 @@
 
   function renderLinksList() {
     const el = document.getElementById('links-list-area');
-    if (links.length === 0) {
+    const visibleLinks = showInactive ? links : links.filter(l => l.Status === 'Aktif');
+
+    if (visibleLinks.length === 0) {
       el.innerHTML = '<div class="empty-state" data-i18n="links.noLinks"></div>';
       STSI18N.applyToDom();
       return;
     }
 
-    const sorted = links.slice().sort((a, b) => new Date(b.CreatedAt) - new Date(a.CreatedAt));
+    const sorted = visibleLinks.slice().sort((a, b) => new Date(b.CreatedAt) - new Date(a.CreatedAt));
 
     const rows = sorted.map(l => {
       const campaign = campaigns.find(c => c.CampaignID === l.CampaignID);
@@ -155,6 +177,9 @@
       const applyUrl = APPLY_BASE_URL + '?token=' + l.Token;
       const badgeClass = l.Status === 'Aktif' ? 'badge-success' : 'badge-neutral';
       const usageText = (l.UsedCount || 0) + ' / ' + (l.MaxUsage || '∞');
+      const deleteBtn = l.Status === 'Pasif'
+        ? '<button class="btn btn-danger" style="padding:5px 10px; font-size:12px;" onclick="deleteLink(\'' + l.LinkCode + '\')" data-i18n="common.delete"></button>'
+        : '';
 
       return '<tr>' +
         '<td><code style="font-size:12px;">' + escapeHtml(l.LinkCode) + '</code></td>' +
@@ -162,18 +187,19 @@
         '<td>' + usageText + '</td>' +
         '<td style="font-size:12px;">' + fmtDate(l.StartDate) + ' → ' + fmtDate(l.EndDate) + '</td>' +
         '<td><span class="badge ' + badgeClass + '">' + l.Status + '</span></td>' +
+        '<td style="font-size:12px; color:var(--text-secondary);">' + escapeHtml(l.CreatedBy || '') + '<br>' + fmtDate(l.CreatedAt) + '</td>' +
         '<td style="white-space:nowrap;">' +
           '<button class="btn btn-secondary" style="padding:5px 10px; font-size:12px;" onclick="copyLinkUrl(\'' + applyUrl + '\')" data-i18n="common.copy"></button> ' +
           '<button class="btn btn-secondary" style="padding:5px 10px; font-size:12px;" onclick="toggleLinkStatus(\'' + l.LinkCode + '\', \'' + (l.Status === 'Aktif' ? 'Pasif' : 'Aktif') + '\')">' +
             (l.Status === 'Aktif' ? STSI18N.t('common.inactive') : STSI18N.t('common.active')) +
-          '</button>' +
+          '</button> ' + deleteBtn +
         '</td>' +
       '</tr>';
     }).join('');
 
     el.innerHTML = '<table class="data-table"><thead><tr>' +
       '<th data-i18n="links.linkCode"></th><th data-i18n="links.campaign"></th><th data-i18n="links.usage"></th>' +
-      '<th data-i18n="campaigns.dateRange"></th><th data-i18n="common.status"></th><th data-i18n="common.actions"></th>' +
+      '<th data-i18n="campaigns.dateRange"></th><th data-i18n="common.status"></th><th data-i18n="common.createdBy"></th><th data-i18n="common.actions"></th>' +
       '</tr></thead><tbody>' + rows + '</tbody></table>';
     STSI18N.applyToDom();
   }

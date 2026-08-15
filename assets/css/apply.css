@@ -399,3 +399,34 @@
   color: #fff;
   border-color: var(--brand-primary);
 }
+
+/* ============ YÜKLEME İLERLEME GÖSTERGESİ ============ */
+.progress-ring-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-6) var(--space-4);
+  position: relative;
+}
+
+.progress-ring-fg {
+  transition: stroke-dashoffset 0.15s ease;
+}
+
+.progress-ring-percent {
+  position: absolute;
+  top: 44px;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: var(--text-md);
+  font-weight: var(--weight-bold);
+  color: var(--text-primary);
+}
+
+.progress-ring-label {
+  margin-top: var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  text-align: center;
+}

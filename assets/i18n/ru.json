@@ -51,6 +51,9 @@
   "common.confirm": "Подтвердить",
   "common.copy": "Копировать",
   "common.copied": "Скопировано",
+  "common.createdBy": "Создал",
+  "common.showInactive": "Показать неактивные",
+  "common.deleteConfirm": "Вы уверены, что хотите окончательно удалить эту запись? Это действие нельзя отменить.",
 
   "forms.title": "Конструктор форм",
   "forms.subtitle": "Определяйте поля и документы без программирования.",
@@ -134,6 +137,7 @@
   "apply.error.generic": "Произошла ошибка, попробуйте позже.",
   "apply.submit": "Отправить заявку",
   "apply.submitting": "Отправка...",
+  "apply.uploading": "Загрузка",
   "apply.saveChanges": "Сохранить изменения",
   "apply.kvkkAccept": "Я прочитал(а) уведомление о защите персональных данных и даю явное согласие на обработку моих персональных данных.",
   "apply.kvkkRequired": "Для продолжения необходимо принять уведомление о защите персональных данных.",
@@ -145,5 +149,24 @@
   "apply.editSubtitle": "Заполните только те поля, которые хотите изменить — остальные можно оставить пустыми.",
   "apply.rejectedGeneral": "отклонён, загрузите заново.",
   "apply.editSuccessTitle": "Изменения сохранены",
-  "apply.editSuccessDesc": "Ваша заявка обновлена. Мы свяжемся с вами после рассмотрения."
+  "apply.editSuccessDesc": "Ваша заявка обновлена. Мы свяжемся с вами после рассмотрения.",
+
+  "personnel.title": "Персонал",
+  "personnel.applicationsTitle": "Заявки",
+  "personnel.applicationsDesc": "Просмотр заявок, статусов документов и регистрационных номеров.",
+  "personnel.candidate": "Кандидат",
+  "personnel.submittedAt": "Дата подачи",
+  "personnel.viewDetail": "Подробнее",
+  "personnel.closeDetail": "Закрыть",
+  "personnel.noApplications": "Заявок пока нет.",
+  "personnel.applicationStatus": "Статус заявки:",
+  "personnel.createPersonnel": "+ Создать сотрудника",
+  "personnel.linkedTo": "Сотрудник",
+  "personnel.formData": "Данные формы",
+  "personnel.documents": "Документы",
+  "personnel.combinedPdf": "Объединённый PDF заявки",
+  "personnel.viewFile": "Просмотр",
+  "personnel.rosterTitle": "Список персонала",
+  "personnel.rosterDesc": "Одобренные и зарегистрированные сотрудники.",
+  "personnel.noPersonnel": "Записи о персонале ещё не созданы."
 }

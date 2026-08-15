@@ -212,11 +212,80 @@ const STSApplyForm = (function () {
     return { collect: collect, validate: validate };
   }
 
+  // ============================================================
+  // YÜKLEME İLERLEME GÖSTERGESİ (gerçek yüzde, XHR upload.onprogress ile)
+  // ============================================================
+
+  /**
+   * Dairesel ilerleme göstergesi oluşturur. container içine SVG basar,
+   * setPercent(0-100) ile güncellenir.
+   */
+  function createProgressRing(container, label) {
+    const radius = 36;
+    const circumference = 2 * Math.PI * radius;
+    container.innerHTML =
+      '<div class="progress-ring-wrap">' +
+        '<svg width="88" height="88" viewBox="0 0 88 88">' +
+          '<circle cx="44" cy="44" r="' + radius + '" stroke="var(--surface-border, #e5e7eb)" stroke-width="7" fill="none"/>' +
+          '<circle class="progress-ring-fg" cx="44" cy="44" r="' + radius + '" stroke="var(--brand-primary, #2563eb)" stroke-width="7" fill="none" ' +
+            'stroke-linecap="round" stroke-dasharray="' + circumference + '" stroke-dashoffset="' + circumference + '" ' +
+            'transform="rotate(-90 44 44)"/>' +
+        '</svg>' +
+        '<div class="progress-ring-percent">0%</div>' +
+        '<div class="progress-ring-label">' + escapeHtml(label || '') + '</div>' +
+      '</div>';
+
+    const fg = container.querySelector('.progress-ring-fg');
+    const percentEl = container.querySelector('.progress-ring-percent');
+
+    return {
+      setPercent: function (p) {
+        p = Math.max(0, Math.min(100, p));
+        const offset = circumference * (1 - p / 100);
+        fg.style.strokeDashoffset = offset;
+        percentEl.textContent = Math.round(p) + '%';
+      }
+    };
+  }
+
+  /**
+   * XMLHttpRequest ile gönderim yapar, gerçek yükleme yüzdesini
+   * (e.loaded/e.total) onProgress callback'ine bildirir. Büyük base64
+   * dosya içeren istekler (başvuru gönderme/düzenleme) için kullanılır.
+   */
+  function submitWithProgress(url, payload, onProgress, onLoad, onError) {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', url, true);
+    xhr.setRequestHeader('Content-Type', 'text/plain;charset=utf-8');
+
+    xhr.upload.onprogress = function (e) {
+      if (e.lengthComputable) {
+        onProgress(Math.round((e.loaded / e.total) * 100));
+      }
+    };
+
+    xhr.onload = function () {
+      onProgress(100);
+      try {
+        const json = JSON.parse(xhr.responseText);
+        onLoad(json);
+      } catch (e) {
+        onError('Sunucudan geçersiz yanıt.');
+      }
+    };
+
+    xhr.onerror = function () {
+      onError('Ağ hatası, isteği tamamlayamadık.');
+    };
+
+    xhr.send(JSON.stringify(payload));
+  }
+
   function escapeHtml(str) {
     return String(str || '').replace(/[&<>"']/g, function (m) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m];
     });
   }
 
-  return { render: render };
+  return { render: render, createProgressRing: createProgressRing, submitWithProgress: submitWithProgress };
 })();
