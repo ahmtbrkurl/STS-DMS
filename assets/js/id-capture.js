@@ -80,6 +80,7 @@ const STSIDCapture = (function () {
           '<div class="idcap-modal-hint">Kamera açılıyor...</div>' +
           '<div class="idcap-modal-actions">' +
             '<button type="button" class="btn btn-secondary idcap-cancel">İptal</button>' +
+            '<button type="button" class="btn btn-secondary idcap-refocus">🎯 Odakla</button>' +
             '<button type="button" class="btn btn-primary idcap-shoot" disabled>Odaklanıyor...</button>' +
           '</div>' +
         '</div>';
@@ -88,6 +89,7 @@ const STSIDCapture = (function () {
       const video = modal.querySelector('.idcap-video');
       const hintEl = modal.querySelector('.idcap-modal-hint');
       const shootBtn = modal.querySelector('.idcap-shoot');
+      const refocusBtn = modal.querySelector('.idcap-refocus');
       const facingMode = options.facingMode || (isPortrait ? 'user' : 'environment');
       let currentTrack = null;
 
@@ -117,8 +119,8 @@ const STSIDCapture = (function () {
             setTimeout(function () {
               shootBtn.disabled = false;
               shootBtn.textContent = 'Çek';
-              hintEl.textContent = escapeHtml(options.hint || 'Belgeyi çerçeveye hizalayın');
-            }, 1100);
+              hintEl.textContent = options.hint || 'Belgeyi çerçeveye hizalayın';
+            }, 1500);
           })
           .catch(function (err) {
             hintEl.textContent = 'Kameraya erişilemedi (' + err.message + '). Lütfen dosyadan yükleyin.';
@@ -132,6 +134,15 @@ const STSIDCapture = (function () {
       }
 
       modal.querySelector('.idcap-cancel').addEventListener('click', closeModal);
+
+      refocusBtn.addEventListener('click', function () {
+        if (currentTrack) {
+          refocus(currentTrack, hintEl, options.hint);
+        } else {
+          hintEl.textContent = 'Kamera henüz hazır değil.';
+        }
+      });
+
       shootBtn.addEventListener('click', function () {
         if (!video.videoWidth || shootBtn.disabled) return;
         const dataUrl = isPortrait ? capturePortraitFrame(video) : captureCardFrame(video);
@@ -163,9 +174,14 @@ const STSIDCapture = (function () {
     } catch (e) { /* desteklenmiyor, sorun değil — cihazın kendi otomatik odaklaması çalışır */ }
   }
 
-  // Dokunma ile yeniden odaklama — tek seferlik odaklama tetikler (destekleyen cihazlarda)
+  // Dokunma/buton ile yeniden odaklama — tek seferlik odaklama tetikler
+  // (destekleyen cihazlarda). Desteklenmiyorsa kullanıcıya açıkça söyler.
   function refocus(track, hintEl, originalHint) {
-    if (!track || !track.getCapabilities) return;
+    if (!track || !track.getCapabilities) {
+      hintEl.textContent = 'Bu cihaz/tarayıcı manuel odaklama kontrolünü desteklemiyor. Belgeyi hafifçe öne/arkaya oynatmayı deneyin.';
+      resetHintAfter(hintEl, originalHint);
+      return;
+    }
     try {
       const caps = track.getCapabilities();
       if (caps.focusMode && caps.focusMode.indexOf('single-shot') !== -1) {
@@ -173,13 +189,29 @@ const STSIDCapture = (function () {
         track.applyConstraints({ advanced: [{ focusMode: 'single-shot' }] })
           .then(function () {
             setTimeout(function () {
-              hintEl.textContent = escapeHtml(originalHint || 'Belgeyi çerçeveye hizalayın');
+              hintEl.textContent = 'Odaklandı, çekebilirsiniz.';
               track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(function () {});
-            }, 600);
+              resetHintAfter(hintEl, originalHint);
+            }, 700);
           })
-          .catch(function () {});
+          .catch(function () {
+            hintEl.textContent = 'Odaklama denendi ama uygulanamadı. Belgeyi hafifçe öne/arkaya oynatmayı deneyin.';
+            resetHintAfter(hintEl, originalHint);
+          });
+      } else {
+        hintEl.textContent = 'Bu cihaz manuel odaklama kontrolünü desteklemiyor. Belgeyi hafifçe öne/arkaya oynatarak netleşmesini bekleyin.';
+        resetHintAfter(hintEl, originalHint);
       }
-    } catch (e) { /* desteklenmiyor */ }
+    } catch (e) {
+      hintEl.textContent = 'Bu cihaz manuel odaklama kontrolünü desteklemiyor.';
+      resetHintAfter(hintEl, originalHint);
+    }
+  }
+
+  function resetHintAfter(hintEl, originalHint) {
+    setTimeout(function () {
+      hintEl.textContent = originalHint || 'Belgeyi çerçeveye hizalayın';
+    }, 2600);
   }
 
   function attachTwoSided(container, options) {
