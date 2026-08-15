@@ -12,6 +12,7 @@
 <div id="app-shell"></div>
 
 <script src="../assets/js/i18n.js"></script>
+<script src="../assets/js/loading.js"></script>
 <script src="../assets/js/api.js"></script>
 <script src="../assets/js/layout.js"></script>
 <script>
@@ -24,6 +25,9 @@
   let openApplicationId = null;
   let openApplicationDetail = null;
   let openApplicationFormDef = null;
+  let statusFilter = '';
+  let currentPage = 1;
+  const PAGE_SIZE = 10;
 
   const DOC_STATUSES = ['Bekliyor', 'Eksik', 'İnceleniyor', 'Onaylandı', 'Reddedildi'];
   const APP_STATUSES = ['Bekliyor', 'İnceleniyor', 'Onaylandı', 'Reddedildi'];
@@ -70,9 +74,16 @@
             '<p class="card-title" data-i18n="personnel.applicationsTitle"></p>' +
             '<p class="card-subtitle" data-i18n="personnel.applicationsDesc"></p>' +
           '</div>' +
-          '<button class="btn btn-secondary" data-i18n="forms.refresh" onclick="refreshAll()"></button>' +
+          '<div style="display:flex; align-items:center; gap:10px;">' +
+            '<select id="status-filter" onchange="onStatusFilterChange()" style="padding:8px 10px; border-radius:6px; border:1px solid var(--surface-border); font-size:13px;">' +
+              '<option value="">' + STSI18N.t('personnel.allStatuses') + '</option>' +
+              APP_STATUSES.map(s => '<option value="' + s + '"' + (s === statusFilter ? ' selected' : '') + '>' + s + '</option>').join('') +
+            '</select>' +
+            '<button class="btn btn-secondary" data-i18n="forms.refresh" onclick="refreshAll()"></button>' +
+          '</div>' +
         '</div>' +
         '<div id="applications-list-area"></div>' +
+        '<div id="pagination-area"></div>' +
       '</div>' +
       '<div id="detail-area"></div>' +
       '<div class="card">' +
@@ -105,17 +116,37 @@
     return 'badge-neutral';
   }
 
+  function onStatusFilterChange() {
+    statusFilter = document.getElementById('status-filter').value;
+    currentPage = 1;
+    renderApplicationsList();
+  }
+
+  function goToPage(page) {
+    currentPage = page;
+    renderApplicationsList();
+    document.getElementById('applications-list-area').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
   function renderApplicationsList() {
     const el = document.getElementById('applications-list-area');
-    if (applications.length === 0) {
+    const pagerEl = document.getElementById('pagination-area');
+
+    let filtered = statusFilter ? applications.filter(a => a.Status === statusFilter) : applications;
+    filtered = filtered.slice().sort((a, b) => new Date(b.SubmittedAt) - new Date(a.SubmittedAt));
+
+    if (filtered.length === 0) {
       el.innerHTML = '<div class="empty-state" data-i18n="personnel.noApplications"></div>';
+      pagerEl.innerHTML = '';
       STSI18N.applyToDom();
       return;
     }
 
-    const sorted = applications.slice().sort((a, b) => new Date(b.SubmittedAt) - new Date(a.SubmittedAt));
+    const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+    if (currentPage > totalPages) currentPage = totalPages;
+    const pageItems = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
-    const rows = sorted.map(app => {
+    const rows = pageItems.map(app => {
       const resolved = resolveGroupForApplication(app);
       const groupName = resolved && resolved.group ? resolved.group.Name : '—';
       const displayName = (app.FolderName || '').replace(/_/g, ' ');
@@ -135,6 +166,19 @@
       '<th data-i18n="personnel.candidate"></th><th data-i18n="campaigns.group"></th><th data-i18n="personnel.submittedAt"></th>' +
       '<th data-i18n="common.status"></th><th data-i18n="common.actions"></th>' +
       '</tr></thead><tbody>' + rows + '</tbody></table>';
+
+    // Sayfalama kontrolleri
+    if (totalPages > 1) {
+      let pagerHtml = '<div class="pagination-bar">';
+      pagerHtml += '<button class="btn btn-secondary" style="padding:5px 10px; font-size:12px;" ' + (currentPage === 1 ? 'disabled' : '') + ' onclick="goToPage(' + (currentPage - 1) + ')">‹</button>';
+      pagerHtml += '<span class="pagination-info">' + currentPage + ' / ' + totalPages + '</span>';
+      pagerHtml += '<button class="btn btn-secondary" style="padding:5px 10px; font-size:12px;" ' + (currentPage === totalPages ? 'disabled' : '') + ' onclick="goToPage(' + (currentPage + 1) + ')">›</button>';
+      pagerHtml += '</div>';
+      pagerEl.innerHTML = pagerHtml;
+    } else {
+      pagerEl.innerHTML = '';
+    }
+
     STSI18N.applyToDom();
   }
 
@@ -277,18 +321,24 @@
     }
     const rows = personnel.map(p => {
       const groupName = (groups.find(g => g.GroupID === p.GroupID) || {}).Name || p.GroupID;
+      // Bu personelin bağlı olduğu güncel başvuruyu bul (belgeleri görüntülemek için)
+      const linkedApp = applications.find(a => a.BaseApplicationID === p.BaseApplicationID);
+      const viewBtn = linkedApp
+        ? '<button class="btn btn-secondary" style="padding:5px 10px; font-size:12px;" onclick="openDetail(\'' + linkedApp.ApplicationID + '\')" data-i18n="personnel.viewFiles"></button>'
+        : '';
       return '<tr>' +
         '<td><code style="font-size:12px;">' + escapeHtml(p.PersonnelID) + '</code></td>' +
         '<td>' + escapeHtml(p.FullName) + '</td>' +
         '<td>' + escapeHtml(groupName) + '</td>' +
         '<td><span class="badge badge-success">' + escapeHtml(p.Status) + '</span></td>' +
         '<td style="font-size:12px;">' + fmtDate(p.CreatedAt) + '</td>' +
+        '<td>' + viewBtn + '</td>' +
       '</tr>';
     }).join('');
 
     el.innerHTML = '<table class="data-table"><thead><tr>' +
       '<th>ID</th><th data-i18n="common.name"></th><th data-i18n="campaigns.group"></th>' +
-      '<th data-i18n="common.status"></th><th data-i18n="common.createdAt"></th>' +
+      '<th data-i18n="common.status"></th><th data-i18n="common.createdAt"></th><th data-i18n="common.actions"></th>' +
       '</tr></thead><tbody>' + rows + '</tbody></table>';
     STSI18N.applyToDom();
   }
@@ -314,6 +364,8 @@
   .detail-doc-row { display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border:1px solid var(--surface-border); border-radius:8px; gap:10px; flex-wrap:wrap; }
   .detail-doc-info { font-size:13px; color:var(--text-primary); }
   .doc-status-select { padding:6px 8px; border-radius:6px; border:1px solid var(--surface-border); font-size:12px; }
+  .pagination-bar { display:flex; align-items:center; justify-content:center; gap:14px; padding:16px 0 4px; }
+  .pagination-info { font-size:13px; color:var(--text-secondary); font-weight:500; }
 </style>
 
 </body>

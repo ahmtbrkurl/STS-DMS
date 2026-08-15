@@ -12,6 +12,7 @@
 <div id="app-shell"></div>
 
 <script src="../assets/js/i18n.js"></script>
+<script src="../assets/js/loading.js"></script>
 <script src="../assets/js/api.js"></script>
 <script src="../assets/js/layout.js"></script>
 <script>
@@ -39,6 +40,7 @@
   let fields = [];         // aktif düzenlenen formun alanları
   let selectedIndex = -1;  // Alan Özellikleri panelinde seçili alan
   let editingFormId = null; // null ise yeni form, doluysa mevcut formu güncelliyoruz
+  let showInactive = false;
   let dragFromIndex = null;
 
   (async function () {
@@ -116,7 +118,10 @@
             '<p class="card-title" data-i18n="forms.existingForms"></p>' +
             '<p class="card-subtitle" data-i18n="forms.existingFormsDesc"></p>' +
           '</div>' +
-          '<button class="btn btn-secondary" data-i18n="forms.refresh" onclick="refreshFormsList()"></button>' +
+          '<div style="display:flex; align-items:center; gap:12px;">' +
+            '<label class="checkbox-row" style="margin:0;"><input type="checkbox" id="show-inactive-toggle" ' + (showInactive ? 'checked' : '') + ' onchange="toggleShowInactive()"> <span data-i18n="common.showInactive"></span></label>' +
+            '<button class="btn btn-secondary" data-i18n="forms.refresh" onclick="refreshFormsList()"></button>' +
+          '</div>' +
         '</div>' +
         '<div id="forms-list-area"></div>' +
       '</div>';
@@ -246,16 +251,37 @@
     el.innerHTML = labelTokens.concat(specialTokens).join('');
   }
 
+  function toggleShowInactive() {
+    showInactive = document.getElementById('show-inactive-toggle').checked;
+    renderFormsList();
+  }
+
+  async function deleteForm(formId, name) {
+    if (!confirm(STSI18N.t('common.deleteConfirm') + '\n\n' + name)) return;
+    const result = await STSAPI.call('forms.delete', { formId: formId });
+    if (result.ok) {
+      await loadExistingForms();
+      renderFormsList();
+    } else {
+      alert(result.error || STSI18N.t('common.error.generic'));
+    }
+  }
+
   function renderFormsList() {
     const el = document.getElementById('forms-list-area');
-    if (existingForms.length === 0) {
+    const visibleForms = showInactive ? existingForms : existingForms.filter(f => f.Status === 'Aktif');
+
+    if (visibleForms.length === 0) {
       el.innerHTML = '<div class="empty-state" data-i18n="forms.noForms"></div>';
       STSI18N.applyToDom();
       return;
     }
-    const rows = existingForms.map(f => {
+    const rows = visibleForms.map(f => {
       const groupName = (groups.find(g => g.GroupID === f.GroupID) || {}).Name || f.GroupID;
       const badgeClass = f.Status === 'Aktif' ? 'badge-success' : 'badge-neutral';
+      const deleteBtn = f.Status === 'Pasif'
+        ? '<button class="btn btn-danger" style="padding:5px 10px; font-size:12px;" onclick="deleteForm(\'' + f.FormID + '\', \'' + escapeHtml(f.Name).replace(/'/g, "\\'") + '\')" data-i18n="common.delete"></button>'
+        : '';
       return '<tr>' +
         '<td>' + escapeHtml(f.Name) + '</td>' +
         '<td>' + escapeHtml(groupName) + '</td>' +
@@ -265,7 +291,7 @@
           '<button class="btn btn-secondary" style="padding:5px 10px; font-size:12px;" onclick="loadFormForEdit(\'' + f.FormID + '\')">' + STSI18N.t('forms.editForm') + '</button> ' +
           '<button class="btn btn-secondary" style="padding:5px 10px; font-size:12px;" onclick="toggleFormStatus(\'' + f.FormID + '\', \'' + (f.Status === 'Aktif' ? 'Pasif' : 'Aktif') + '\')">' +
             (f.Status === 'Aktif' ? STSI18N.t('common.inactive') : STSI18N.t('common.active')) +
-          '</button>' +
+          '</button> ' + deleteBtn +
         '</td>' +
       '</tr>';
     }).join('');
@@ -352,6 +378,7 @@
       version: document.getElementById('f-version').value.trim() || '1.0',
       folderNamingTemplate: document.getElementById('f-template').value.trim(),
       fields: fields.map(f => ({
+        fieldId: f.fieldId || null,
         type: f.type, label: f.label, required: !!f.required, order: f.order,
         options: f.options, usedInFolderName: !!f.usedInFolderName, fileLabel: f.fileLabel,
         templateFileId: f.templateFileId || '', templateFileName: f.templateFileName || '',

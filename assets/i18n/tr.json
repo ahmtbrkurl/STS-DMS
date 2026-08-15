@@ -168,5 +168,7 @@
   "personnel.viewFile": "Görüntüle",
   "personnel.rosterTitle": "Personel Listesi",
   "personnel.rosterDesc": "Onaylanmış ve kaydı oluşturulmuş personeller.",
-  "personnel.noPersonnel": "Henüz personel kaydı oluşturulmadı."
+  "personnel.noPersonnel": "Henüz personel kaydı oluşturulmadı.",
+  "personnel.allStatuses": "Tüm Durumlar",
+  "personnel.viewFiles": "Belgeleri Gör"
 }

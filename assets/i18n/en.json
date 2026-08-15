@@ -168,5 +168,7 @@
   "personnel.viewFile": "View",
   "personnel.rosterTitle": "Personnel Roster",
   "personnel.rosterDesc": "Approved and registered personnel.",
-  "personnel.noPersonnel": "No personnel records created yet."
+  "personnel.noPersonnel": "No personnel records created yet.",
+  "personnel.allStatuses": "All Statuses",
+  "personnel.viewFiles": "View Files"
 }

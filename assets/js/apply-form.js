@@ -249,36 +249,53 @@ const STSApplyForm = (function () {
   }
 
   /**
-   * XMLHttpRequest ile gönderim yapar, gerçek yükleme yüzdesini
-   * (e.loaded/e.total) onProgress callback'ine bildirir. Büyük base64
-   * dosya içeren istekler (başvuru gönderme/düzenleme) için kullanılır.
+   * Gönderim isteğini yapar ve görsel bir ilerleme göstergesi sürer.
+   *
+   * NOT (ÖNEMLİ): Gerçek byte-bazlı yükleme yüzdesi için tarayıcı
+   * XMLHttpRequest.upload.onprogress gerektirir, ancak bu proje Google
+   * Apps Script Web App'e (kendi 302 yönlendirmesi olan bir yapı)
+   * bağlandığı için XHR bazı tarayıcı/ağ koşullarında güvenilir
+   * çalışmadı ("Ağ hatası" ile başarısız oluyordu). Bu yüzden burada
+   * KANITLANMIŞ ÇALIŞAN fetch() kullanılıyor; ilerleme çubuğu ise
+   * isteğin süresine göre yumuşakça %90'a kadar ilerleyip, gerçek
+   * yanıt gelince %100'e tamamlanan GERÇEKÇİ (ama tahmini) bir
+   * animasyondur — güvenilirlik doğruluktan önce gelir.
    */
   function submitWithProgress(url, payload, onProgress, onLoad, onError) {
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', url, true);
-    xhr.setRequestHeader('Content-Type', 'text/plain;charset=utf-8');
+    let pct = 0;
+    let stopped = false;
+    onProgress(0);
 
-    xhr.upload.onprogress = function (e) {
-      if (e.lengthComputable) {
-        onProgress(Math.round((e.loaded / e.total) * 100));
-      }
-    };
+    const interval = setInterval(function () {
+      if (stopped) return;
+      // %90'a yaklaştıkça yavaşlayan bir eğri — gerçek bir yükleme hissi verir
+      pct += (90 - pct) * 0.10 + 0.4;
+      if (pct > 90) pct = 90;
+      onProgress(pct);
+    }, 180);
 
-    xhr.onload = function () {
-      onProgress(100);
-      try {
-        const json = JSON.parse(xhr.responseText);
+    fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    })
+      .then(function (res) { return res.text(); })
+      .then(function (text) {
+        stopped = true;
+        clearInterval(interval);
+        onProgress(100);
+        let json;
+        try { json = JSON.parse(text); } catch (e) {
+          onError('Sunucudan geçersiz yanıt.');
+          return;
+        }
         onLoad(json);
-      } catch (e) {
-        onError('Sunucudan geçersiz yanıt.');
-      }
-    };
-
-    xhr.onerror = function () {
-      onError('Ağ hatası, isteği tamamlayamadık.');
-    };
-
-    xhr.send(JSON.stringify(payload));
+      })
+      .catch(function (err) {
+        stopped = true;
+        clearInterval(interval);
+        onError('Ağ hatası: ' + (err && err.message ? err.message : 'bilinmeyen hata'));
+      });
   }
 
   function escapeHtml(str) {

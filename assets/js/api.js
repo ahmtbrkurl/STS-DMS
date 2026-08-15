@@ -53,9 +53,14 @@ const STSAPI = (function () {
    * Ana API çağrı fonksiyonu.
    * action: örn. 'groups.list'
    * payload: gövdeye eklenecek ek alanlar (action ve token otomatik eklenir)
+   * Her çağrı otomatik olarak global yükleme göstergesini (STSLoading)
+   * gösterir/gizler — sayfa yavaş yüklendiğinde kullanıcı bekliyor
+   * olduğunu net görür.
    */
   async function call(action, payload) {
     const body = Object.assign({ action: action, token: getToken() }, payload || {});
+
+    if (window.STSLoading) STSLoading.show();
 
     let res;
     try {
@@ -65,12 +70,18 @@ const STSAPI = (function () {
         body: JSON.stringify(body)
       });
     } catch (networkErr) {
+      if (window.STSLoading) STSLoading.hide();
       return { ok: false, error: 'Sunucuya ulaşılamıyor. İnternet bağlantınızı kontrol edin.' };
     }
 
     const text = await res.text();
     let json;
-    try { json = JSON.parse(text); } catch (e) { return { ok: false, error: 'Sunucudan geçersiz yanıt.' }; }
+    try { json = JSON.parse(text); } catch (e) {
+      if (window.STSLoading) STSLoading.hide();
+      return { ok: false, error: 'Sunucudan geçersiz yanıt.' };
+    }
+
+    if (window.STSLoading) STSLoading.hide();
 
     // Oturum süresi dolmuşsa merkezi olarak yönlendir
     if (json.ok === false && json.error && json.error.indexOf('Oturum geçersiz') !== -1) {

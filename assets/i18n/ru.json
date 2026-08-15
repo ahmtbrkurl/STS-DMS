@@ -168,5 +168,7 @@
   "personnel.viewFile": "Просмотр",
   "personnel.rosterTitle": "Список персонала",
   "personnel.rosterDesc": "Одобренные и зарегистрированные сотрудники.",
-  "personnel.noPersonnel": "Записи о персонале ещё не созданы."
+  "personnel.noPersonnel": "Записи о персонале ещё не созданы.",
+  "personnel.allStatuses": "Все статусы",
+  "personnel.viewFiles": "Просмотр файлов"
 }

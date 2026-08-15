@@ -24,6 +24,7 @@
 </div>
 
 <script src="../assets/js/i18n.js"></script>
+<script src="../assets/js/loading.js"></script>
 <script src="../assets/js/id-capture.js"></script>
 <script src="../assets/js/apply-form.js"></script>
 <script>
@@ -34,12 +35,20 @@
   let formCtl = null;
 
   async function callApi(payload) {
-    const res = await fetch(BASE_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(payload)
-    });
-    const text = await res.text();
+    if (window.STSLoading) STSLoading.show();
+    let res, text;
+    try {
+      res = await fetch(BASE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload)
+      });
+      text = await res.text();
+    } catch (e) {
+      if (window.STSLoading) STSLoading.hide();
+      return { ok: false, error: 'Sunucuya ulaşılamıyor. İnternet bağlantınızı kontrol edin.' };
+    }
+    if (window.STSLoading) STSLoading.hide();
     try { return JSON.parse(text); } catch (e) { return { ok: false, error: 'Sunucudan geçersiz yanıt.' }; }
   }
 
