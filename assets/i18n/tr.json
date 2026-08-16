@@ -213,5 +213,23 @@
   "personnel.waReviewingBody": "\"{company}\" şirketine yapmış olduğunuz başvuru evrakları şu anda incelenme aşamasındadır. En kısa sürede sizinle iletişime geçeceğiz.",
   "personnel.waAppRejectedBody": "\"{company}\" şirketine yapmış olduğunuz başvuru değerlendirilmiş olup, olumsuz sonuçlanmıştır.",
   "personnel.waPendingBody": "\"{company}\" şirketine yapmış olduğunuz başvuru tarafımıza ulaşmıştır, en kısa sürede incelemeye alınacaktır.",
-  "personnel.waEditLinkFooter": "Bilgilerinizi güncellemek isterseniz aşağıdaki linki kullanabilirsiniz:\n{editUrl}\n\nİyi çalışmalar dileriz."
+  "personnel.waEditLinkFooter": "Bilgilerinizi güncellemek isterseniz aşağıdaki linki kullanabilirsiniz:\n{editUrl}\n\nİyi çalışmalar dileriz.",
+
+  "settings.title": "Ayarlar",
+  "settings.usersTitle": "Kullanıcı Yönetimi",
+  "settings.usersSubtitle": "HR kullanıcıları oluşturun, rol ve grup erişimi atayın.",
+  "settings.username": "Kullanıcı Adı",
+  "settings.password": "Şifre",
+  "settings.passwordEditHint": "değiştirmek için doldurun",
+  "settings.role": "Rol",
+  "settings.roleAdmin": "Admin — her şeyi görür ve yönetir",
+  "settings.roleHR": "HR — normal kullanım",
+  "settings.roleViewer": "Görüntüleyici — sadece görüntüler",
+  "settings.assignedGroups": "Erişebileceği Gruplar",
+  "settings.assignedGroupsHint": "Bu kullanıcı sadece işaretlediğiniz gruplara ait form/kampanya/link/başvuru/personel kayıtlarını görebilir.",
+  "settings.allGroups": "Tüm Gruplar",
+  "settings.usernamePasswordRequired": "Kullanıcı adı ve şifre gerekli.",
+  "settings.existingUsers": "Kullanıcılar",
+  "settings.existingUsersDesc": "Kayıtlı kullanıcıları görüntüleyin, düzenleyin veya pasifleştirin.",
+  "settings.noUsers": "Henüz kullanıcı oluşturulmadı."
 }

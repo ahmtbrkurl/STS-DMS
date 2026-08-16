@@ -213,5 +213,23 @@
   "personnel.waReviewingBody": "Your application to \"{company}\" is currently under review. We will contact you as soon as possible.",
   "personnel.waAppRejectedBody": "Your application to \"{company}\" has been reviewed and the outcome was not successful.",
   "personnel.waPendingBody": "Your application to \"{company}\" has reached us and will be reviewed shortly.",
-  "personnel.waEditLinkFooter": "If you'd like to update your information, you can use the link below:\n{editUrl}\n\nBest regards."
+  "personnel.waEditLinkFooter": "If you'd like to update your information, you can use the link below:\n{editUrl}\n\nBest regards.",
+
+  "settings.title": "Settings",
+  "settings.usersTitle": "User Management",
+  "settings.usersSubtitle": "Create HR users and assign roles and group access.",
+  "settings.username": "Username",
+  "settings.password": "Password",
+  "settings.passwordEditHint": "fill to change",
+  "settings.role": "Role",
+  "settings.roleAdmin": "Admin — sees and manages everything",
+  "settings.roleHR": "HR — regular usage",
+  "settings.roleViewer": "Viewer — read-only",
+  "settings.assignedGroups": "Accessible Groups",
+  "settings.assignedGroupsHint": "This user will only see form/campaign/link/application/personnel records belonging to the groups you check.",
+  "settings.allGroups": "All Groups",
+  "settings.usernamePasswordRequired": "Username and password are required.",
+  "settings.existingUsers": "Users",
+  "settings.existingUsersDesc": "View, edit, or deactivate saved users.",
+  "settings.noUsers": "No users created yet."
 }

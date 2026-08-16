@@ -213,5 +213,23 @@
   "personnel.waReviewingBody": "Ваша заявка в \"{company}\" сейчас находится на рассмотрении. Мы свяжемся с вами в ближайшее время.",
   "personnel.waAppRejectedBody": "Ваша заявка в \"{company}\" была рассмотрена, результат отрицательный.",
   "personnel.waPendingBody": "Ваша заявка в \"{company}\" получена и будет рассмотрена в ближайшее время.",
-  "personnel.waEditLinkFooter": "Если хотите обновить свои данные, используйте ссылку ниже:\n{editUrl}\n\nС уважением."
+  "personnel.waEditLinkFooter": "Если хотите обновить свои данные, используйте ссылку ниже:\n{editUrl}\n\nС уважением.",
+
+  "settings.title": "Настройки",
+  "settings.usersTitle": "Управление пользователями",
+  "settings.usersSubtitle": "Создавайте HR-пользователей, назначайте роли и доступ к группам.",
+  "settings.username": "Имя пользователя",
+  "settings.password": "Пароль",
+  "settings.passwordEditHint": "заполните, чтобы изменить",
+  "settings.role": "Роль",
+  "settings.roleAdmin": "Admin — видит и управляет всем",
+  "settings.roleHR": "HR — обычное использование",
+  "settings.roleViewer": "Наблюдатель — только просмотр",
+  "settings.assignedGroups": "Доступные группы",
+  "settings.assignedGroupsHint": "Этот пользователь будет видеть записи форм/кампаний/ссылок/заявок/персонала только для отмеченных групп.",
+  "settings.allGroups": "Все группы",
+  "settings.usernamePasswordRequired": "Требуются имя пользователя и пароль.",
+  "settings.existingUsers": "Пользователи",
+  "settings.existingUsersDesc": "Просмотр, редактирование или деактивация сохранённых пользователей.",
+  "settings.noUsers": "Пользователи ещё не созданы."
 }

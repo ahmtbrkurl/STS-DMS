@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STS-DMS — Ayarlar</title>
+<link rel="stylesheet" href="../assets/css/tokens.css">
+<link rel="stylesheet" href="../assets/css/admin.css">
+</head>
+<body>
+
+<div id="app-shell"></div>
+
+<script src="../assets/js/i18n.js"></script>
+<script src="../assets/js/loading.js"></script>
+<script src="../assets/js/api.js"></script>
+<script src="../assets/js/layout.js"></script>
+<script>
+  let users = [];
+  let groups = [];
+  let editingUserId = null;
+
+  (async function () {
+    await STSI18N.init();
+    STSLayout.render({ activeNav: 'settings', eyebrow: 'dashboard.eyebrow', title: 'settings.title' });
+    STSI18N.onChange(fullRerender);
+    await loadAll();
+    fullRerender();
+  })();
+
+  async function loadAll() {
+    const [u, g] = await Promise.all([
+      STSAPI.call('users.list'),
+      STSAPI.call('groups.list')
+    ]);
+    users = u.ok ? u.data : [];
+    groups = g.ok ? g.data : [];
+    if (!u.ok) {
+      // Görüntüleyici/HR buraya hiç giremez (nav zaten gizler) ama emin olmak için
+      document.getElementById('page-content').innerHTML =
+        '<div class="empty-state">' + (u.error || STSI18N.t('common.error.generic')) + '</div>';
+    }
+  }
+
+  function fullRerender() {
+    const content = document.getElementById('page-content');
+
+    const groupCheckboxes = groups
+      .filter(g => g.Status === 'Aktif')
+      .map(g => '<label class="checkbox-row" style="display:block; margin-bottom:6px;">' +
+        '<input type="checkbox" class="assigned-group-cb" value="' + g.GroupID + '"> <span>' + escapeHtml(g.Name) + '</span></label>'
+      ).join('');
+
+    content.innerHTML =
+      '<div class="card">' +
+        '<div class="card-header">' +
+          '<div>' +
+            '<p class="card-title" data-i18n="settings.usersTitle"></p>' +
+            '<p class="card-subtitle" data-i18n="settings.usersSubtitle"></p>' +
+          '</div>' +
+        '</div>' +
+
+        '<div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">' +
+          '<div class="field" style="margin:0;"><label data-i18n="settings.username"></label><input type="text" id="u-username" ' + (editingUserId ? 'disabled' : '') + '></div>' +
+          '<div class="field" style="margin:0;"><label data-i18n="settings.password"></label><input type="password" id="u-password" placeholder="' + (editingUserId ? STSI18N.t('settings.passwordEditHint') : '') + '"></div>' +
+        '</div>' +
+
+        '<div class="field"><label data-i18n="settings.role"></label>' +
+          '<select id="u-role" onchange="onRoleChange()">' +
+            '<option value="Görüntüleyici">' + STSI18N.t('settings.roleViewer') + '</option>' +
+            '<option value="HR">' + STSI18N.t('settings.roleHR') + '</option>' +
+            '<option value="Admin">' + STSI18N.t('settings.roleAdmin') + '</option>' +
+          '</select>' +
+        '</div>' +
+
+        '<div class="field" id="assigned-groups-field">' +
+          '<label data-i18n="settings.assignedGroups"></label>' +
+          '<div style="font-size:11px; color:var(--text-muted); margin-bottom:8px;" data-i18n="settings.assignedGroupsHint"></div>' +
+          '<label class="checkbox-row" style="display:block; margin-bottom:8px; font-weight:600;">' +
+            '<input type="checkbox" id="u-all-groups" onchange="onAllGroupsToggle()"> <span data-i18n="settings.allGroups"></span></label>' +
+          '<div id="group-checkbox-list" style="padding-left:4px;">' + groupCheckboxes + '</div>' +
+        '</div>' +
+
+        '<div style="display:flex; justify-content:flex-end; gap:10px; margin-top:10px;">' +
+          '<button class="btn btn-secondary" data-i18n="common.cancel" onclick="resetForm()" style="' + (editingUserId ? '' : 'display:none;') + '" id="cancel-edit-btn"></button>' +
+          '<button class="btn btn-primary" id="save-user-btn" onclick="saveUser()"></button>' +
+        '</div>' +
+      '</div>' +
+
+      '<div class="card">' +
+        '<div class="card-header">' +
+          '<div>' +
+            '<p class="card-title" data-i18n="settings.existingUsers"></p>' +
+            '<p class="card-subtitle" data-i18n="settings.existingUsersDesc"></p>' +
+          '</div>' +
+          '<button class="btn btn-secondary" data-i18n="forms.refresh" onclick="refreshList()"></button>' +
+        '</div>' +
+        '<div id="users-list-area"></div>' +
+      '</div>';
+
+    STSI18N.applyToDom();
+    document.getElementById('save-user-btn').textContent = editingUserId ? STSI18N.t('common.save') : STSI18N.t('common.create');
+    onRoleChange();
+    renderUsersList();
+  }
+
+  function onRoleChange() {
+    const role = document.getElementById('u-role').value;
+    const field = document.getElementById('assigned-groups-field');
+    // Admin zaten her şeyi görür, grup atamasına gerek yok
+    field.style.display = (role === 'Admin') ? 'none' : 'block';
+  }
+
+  function onAllGroupsToggle() {
+    const allChecked = document.getElementById('u-all-groups').checked;
+    document.querySelectorAll('.assigned-group-cb').forEach(cb => {
+      cb.disabled = allChecked;
+      if (allChecked) cb.checked = false;
+    });
+  }
+
+  function getSelectedAssignedGroups() {
+    const role = document.getElementById('u-role').value;
+    if (role === 'Admin') return ''; // Admin için gereksiz, backend zaten her şeyi verir
+    if (document.getElementById('u-all-groups').checked) return 'ALL';
+    const checked = Array.from(document.querySelectorAll('.assigned-group-cb:checked')).map(cb => cb.value);
+    return checked.join(',');
+  }
+
+  async function saveUser() {
+    const username = document.getElementById('u-username').value.trim();
+    const password = document.getElementById('u-password').value;
+    const role = document.getElementById('u-role').value;
+    const assignedGroups = getSelectedAssignedGroups();
+
+    if (!editingUserId && (!username || !password)) {
+      alert(STSI18N.t('settings.usernamePasswordRequired'));
+      return;
+    }
+
+    let result;
+    if (editingUserId) {
+      const body = { userId: editingUserId, role: role, assignedGroups: assignedGroups };
+      if (password) body.password = password;
+      result = await STSAPI.call('users.update', body);
+    } else {
+      result = await STSAPI.call('users.create', { username: username, password: password, role: role, assignedGroups: assignedGroups });
+    }
+
+    if (result.ok) {
+      editingUserId = null;
+      await loadAll();
+      fullRerender();
+    } else {
+      alert(result.error || STSI18N.t('common.error.generic'));
+    }
+  }
+
+  function editUser(userId) {
+    const u = users.find(x => x.UserID === userId);
+    if (!u) return;
+    editingUserId = userId;
+    fullRerender();
+    document.getElementById('u-username').value = u.Username;
+    document.getElementById('u-role').value = u.Role;
+    onRoleChange();
+    if (u.AssignedGroups === 'ALL') {
+      document.getElementById('u-all-groups').checked = true;
+      onAllGroupsToggle();
+    } else {
+      const list = (u.AssignedGroups || '').split(',').map(s => s.trim()).filter(Boolean);
+      document.querySelectorAll('.assigned-group-cb').forEach(cb => {
+        cb.checked = list.indexOf(cb.value) !== -1;
+      });
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function resetForm() {
+    editingUserId = null;
+    fullRerender();
+  }
+
+  async function toggleUserStatus(userId, newStatus) {
+    const result = await STSAPI.call('users.update', { userId: userId, status: newStatus });
+    if (result.ok) { await loadAll(); renderUsersList(); }
+    else alert(result.error || STSI18N.t('common.error.generic'));
+  }
+
+  async function refreshList() {
+    await loadAll();
+    fullRerender();
+  }
+
+  function describeAssignedGroups(u) {
+    if (u.Role === 'Admin') return STSI18N.t('settings.allGroups');
+    if (u.AssignedGroups === 'ALL') return STSI18N.t('settings.allGroups');
+    const list = (u.AssignedGroups || '').split(',').map(s => s.trim()).filter(Boolean);
+    if (list.length === 0) return '—';
+    const names = list.map(gid => (groups.find(g => g.GroupID === gid) || {}).Name || gid);
+    return names.join(', ');
+  }
+
+  function renderUsersList() {
+    const el = document.getElementById('users-list-area');
+    if (users.length === 0) {
+      el.innerHTML = '<div class="empty-state" data-i18n="settings.noUsers"></div>';
+      STSI18N.applyToDom();
+      return;
+    }
+    const roleLabels = { 'Admin': STSI18N.t('settings.roleAdmin'), 'HR': STSI18N.t('settings.roleHR'), 'Görüntüleyici': STSI18N.t('settings.roleViewer') };
+
+    const rows = users.map(u => {
+      const badgeClass = u.Status === 'Aktif' ? 'badge-success' : 'badge-neutral';
+      return '<tr>' +
+        '<td><strong>' + escapeHtml(u.Username) + '</strong></td>' +
+        '<td>' + (roleLabels[u.Role] || u.Role) + '</td>' +
+        '<td style="font-size:12px;">' + escapeHtml(describeAssignedGroups(u)) + '</td>' +
+        '<td><span class="badge ' + badgeClass + '">' + u.Status + '</span></td>' +
+        '<td style="white-space:nowrap;">' +
+          '<button class="btn btn-secondary" style="padding:5px 10px; font-size:12px;" onclick="editUser(\'' + u.UserID + '\')">' + STSI18N.t('common.edit') + '</button> ' +
+          '<button class="btn btn-secondary" style="padding:5px 10px; font-size:12px;" onclick="toggleUserStatus(\'' + u.UserID + '\', \'' + (u.Status === 'Aktif' ? 'Pasif' : 'Aktif') + '\')">' +
+            (u.Status === 'Aktif' ? STSI18N.t('common.inactive') : STSI18N.t('common.active')) +
+          '</button>' +
+        '</td>' +
+      '</tr>';
+    }).join('');
+
+    el.innerHTML = '<table class="data-table"><thead><tr>' +
+      '<th data-i18n="settings.username"></th><th data-i18n="settings.role"></th><th data-i18n="settings.assignedGroups"></th>' +
+      '<th data-i18n="common.status"></th><th data-i18n="common.actions"></th>' +
+      '</tr></thead><tbody>' + rows + '</tbody></table>';
+    STSI18N.applyToDom();
+  }
+
+  function escapeHtml(str) {
+    return String(str || '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  }
+</script>
+
+</body>
+</html>
