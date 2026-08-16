@@ -75,6 +75,8 @@
   "forms.fileLabel": "Dosya Etiketi",
   "forms.fileLabelHint": "Dosya adında kullanılacak: KlasörAdı_DosyaEtiketi",
   "forms.options": "Seçenekler (virgülle ayırın)",
+  "forms.multiSelect": "Çoklu Seçim",
+  "forms.multiSelectHint": "Açarsanız aday birden fazla seçenek işaretleyebilir (onay kutuları olarak gösterilir). Kapalıysa tek seçim (açılır liste) olur.",
   "forms.removeField": "Alanı Sil",
   "forms.existingForms": "Oluşturulan Formlar",
   "forms.existingFormsDesc": "Kayıtlı formları görüntüleyin, düzenleyin veya pasifleştirin.",
@@ -194,5 +196,12 @@
   "dashboard.colCreated": "Oluşturma",
   "dashboard.colUpdated": "Onay/Güncelleme",
   "dashboard.colPersonnelCreated": "Personel Oluşturma",
-  "dashboard.colDeleted": "Silme"
+  "dashboard.colDeleted": "Silme",
+
+  "groups.title": "Gruplar",
+  "groups.subtitle": "Personel gruplarını oluşturun ve yönetin.",
+  "groups.existing": "Oluşturulan Gruplar",
+  "groups.existingDesc": "Kayıtlı grupları görüntüleyin, düzenleyin veya pasifleştirin.",
+  "groups.noGroups": "Henüz grup oluşturulmadı.",
+  "groups.nameRequired": "Grup adı gerekli."
 }

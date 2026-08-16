@@ -75,6 +75,8 @@
   "forms.fileLabel": "Метка файла",
   "forms.fileLabelHint": "Используется в имени файла: ИмяПапки_МеткаФайла",
   "forms.options": "Варианты (через запятую)",
+  "forms.multiSelect": "Множественный выбор",
+  "forms.multiSelectHint": "Если включено, кандидат может выбрать несколько вариантов (отображается как флажки). Если выключено — одиночный выбор (выпадающий список).",
   "forms.removeField": "Удалить поле",
   "forms.existingForms": "Созданные формы",
   "forms.existingFormsDesc": "Просмотр, редактирование или деактивация сохранённых форм.",
@@ -194,5 +196,12 @@
   "dashboard.colCreated": "Создано",
   "dashboard.colUpdated": "Одобрено/Обновлено",
   "dashboard.colPersonnelCreated": "Создано сотрудников",
-  "dashboard.colDeleted": "Удалено"
+  "dashboard.colDeleted": "Удалено",
+
+  "groups.title": "Группы",
+  "groups.subtitle": "Создавайте и управляйте группами персонала.",
+  "groups.existing": "Созданные группы",
+  "groups.existingDesc": "Просмотр, редактирование или деактивация сохранённых групп.",
+  "groups.noGroups": "Группы ещё не созданы.",
+  "groups.nameRequired": "Требуется название группы."
 }

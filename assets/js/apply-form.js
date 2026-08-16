@@ -65,8 +65,20 @@ const STSApplyForm = (function () {
         '</div>';
       } else if (f.Type === 'AçılırListe') {
         const options2 = (f.Options || '').split(',').map(o => o.trim()).filter(Boolean);
-        html += '<select class="apply-input" id="field_' + f.FieldID + '"><option value="">—</option>' +
-          options2.map(o => '<option value="' + escapeHtml(o) + '">' + escapeHtml(o) + '</option>').join('') + '</select>';
+        const isMulti = (f.MultiSelect === true || f.MultiSelect === 'TRUE');
+        if (isMulti) {
+          html += '<div class="apply-multiselect-group" id="field_' + f.FieldID + '">' +
+            options2.map(function (o, i) {
+              const optId = 'msopt_' + f.FieldID + '_' + i;
+              return '<label class="apply-checkbox-row apply-multiselect-item">' +
+                '<input type="checkbox" class="apply-multiselect-checkbox" id="' + optId + '" value="' + escapeHtml(o) + '">' +
+                '<span>' + escapeHtml(o) + '</span></label>';
+            }).join('') +
+          '</div>';
+        } else {
+          html += '<select class="apply-input" id="field_' + f.FieldID + '"><option value="">—</option>' +
+            options2.map(o => '<option value="' + escapeHtml(o) + '">' + escapeHtml(o) + '</option>').join('') + '</select>';
+        }
       } else if (f.Type === 'Onay') {
         html += '<label class="apply-checkbox-row"><input type="checkbox" id="field_' + f.FieldID + '"> <span>' + escapeHtml(f.Label) + '</span></label>';
       } else if (f.Type === 'Tarih') {
@@ -181,11 +193,27 @@ const STSApplyForm = (function () {
       if (statusEl) statusEl.textContent = '✓ Kaydedildi';
     }
 
+    function isMultiSelectField(f) {
+      return f.Type === 'AçılırListe' && (f.MultiSelect === true || f.MultiSelect === 'TRUE');
+    }
+
+    function getMultiSelectValues(fieldId) {
+      const wrap = container.querySelector('#field_' + fieldId);
+      if (!wrap) return [];
+      const checked = wrap.querySelectorAll('.apply-multiselect-checkbox:checked');
+      return Array.from(checked).map(c => c.value);
+    }
+
     // ---- Toplama ve doğrulama ----
     function collect() {
       const formData = {};
       formDef.fields.forEach(function (f) {
         if (FILE_TYPES.indexOf(f.Type) !== -1) return;
+        if (f.Type === 'Başlık') return;
+        if (isMultiSelectField(f)) {
+          formData[f.FieldID] = getMultiSelectValues(f.FieldID).join(', ');
+          return;
+        }
         const el = container.querySelector('#field_' + f.FieldID);
         if (!el) return;
         formData[f.FieldID] = (el.type === 'checkbox') ? el.checked : el.value;
@@ -204,6 +232,10 @@ const STSApplyForm = (function () {
         if (FILE_TYPES.indexOf(f.Type) !== -1) {
           if (!fileData[f.FieldID] || !fileData[f.FieldID].base64) {
             return f.Label + ' alanı zorunludur.';
+          }
+        } else if (isMultiSelectField(f)) {
+          if (getMultiSelectValues(f.FieldID).length === 0) {
+            return f.Label + ' alanı için en az bir seçenek işaretlemelisiniz.';
           }
         } else {
           const el = container.querySelector('#field_' + f.FieldID);

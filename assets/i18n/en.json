@@ -75,6 +75,8 @@
   "forms.fileLabel": "File Label",
   "forms.fileLabelHint": "Used in the file name: FolderName_FileLabel",
   "forms.options": "Options (comma separated)",
+  "forms.multiSelect": "Multiple Selection",
+  "forms.multiSelectHint": "If enabled, the candidate can select more than one option (shown as checkboxes). If disabled, it's a single-choice dropdown.",
   "forms.removeField": "Remove Field",
   "forms.existingForms": "Created Forms",
   "forms.existingFormsDesc": "View, edit, or deactivate saved forms.",
@@ -194,5 +196,12 @@
   "dashboard.colCreated": "Created",
   "dashboard.colUpdated": "Approved/Updated",
   "dashboard.colPersonnelCreated": "Personnel Created",
-  "dashboard.colDeleted": "Deleted"
+  "dashboard.colDeleted": "Deleted",
+
+  "groups.title": "Groups",
+  "groups.subtitle": "Create and manage personnel groups.",
+  "groups.existing": "Created Groups",
+  "groups.existingDesc": "View, edit, or deactivate saved groups.",
+  "groups.noGroups": "No groups created yet.",
+  "groups.nameRequired": "Group name is required."
 }

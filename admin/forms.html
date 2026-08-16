@@ -219,6 +219,10 @@
     if (isDropdown) {
       html += '<div class="field"><label>' + STSI18N.t('forms.options') + '</label>' +
         '<input type="text" id="prop-options" value="' + escapeAttr(f.options || '') + '" placeholder="Seçenek1, Seçenek2" oninput="updateSelectedField(\'options\', this.value)"></div>';
+      html += '<div class="checkbox-row">' +
+        '<input type="checkbox" id="prop-multiselect" ' + (f.multiSelect ? 'checked' : '') + ' onchange="updateSelectedField(\'multiSelect\', this.checked)">' +
+        '<label for="prop-multiselect">' + STSI18N.t('forms.multiSelect') + '</label></div>' +
+        '<div style="font-size:11px; color:var(--text-muted); margin-bottom:8px;">' + STSI18N.t('forms.multiSelectHint') + '</div>';
     }
 
     if (isFileType) {
@@ -333,7 +337,8 @@
       templateFileName: '',
       templateFileUrl: '',
       twoSided: false,
-      vesikalikMode: false
+      vesikalikMode: false,
+      multiSelect: false
     });
     selectedIndex = fields.length - 1;
     renderCanvas();
@@ -395,7 +400,8 @@
         type: f.type, label: f.label, required: !!f.required, order: f.order,
         options: f.options, usedInFolderName: !!f.usedInFolderName, fileLabel: f.fileLabel,
         templateFileId: f.templateFileId || '', templateFileName: f.templateFileName || '',
-        templateFileUrl: f.templateFileUrl || '', twoSided: !!f.twoSided, vesikalikMode: !!f.vesikalikMode
+        templateFileUrl: f.templateFileUrl || '', twoSided: !!f.twoSided, vesikalikMode: !!f.vesikalikMode,
+        multiSelect: !!f.multiSelect
       }))
     };
   }
@@ -445,7 +451,8 @@
       fileLabel: f.FileLabel,
       templateFileId: f.TemplateFileId || '', templateFileName: f.TemplateFileName || '', templateFileUrl: f.TemplateFileUrl || '',
       twoSided: f.TwoSided === true || f.TwoSided === 'TRUE',
-      vesikalikMode: f.VesikalikMode === true || f.VesikalikMode === 'TRUE'
+      vesikalikMode: f.VesikalikMode === true || f.VesikalikMode === 'TRUE',
+      multiSelect: f.MultiSelect === true || f.MultiSelect === 'TRUE'
     }));
     selectedIndex = -1;
 
