@@ -49,7 +49,7 @@ const STSApplyForm = (function () {
       const isTwoSided = (f.Type === 'Belge') && (f.TwoSided === true || f.TwoSided === 'TRUE');
       const isVesikalik = (f.Type === 'Fotoğraf') && (f.VesikalikMode === true || f.VesikalikMode === 'TRUE');
       const isRequired = (f.Required === true || f.Required === 'TRUE');
-      const isRejected = rejectedSet.has(f.Label) || Array.from(rejectedSet).some(r => r.indexOf(f.Label) === 0);
+      const isRejected = f.Label && (rejectedSet.has(f.Label) || Array.from(rejectedSet).some(r => r.indexOf(f.Label) === 0));
 
       html += '<div class="apply-field" id="fieldwrap_' + f.FieldID + '">';
       html += '<label class="apply-field-label">' + escapeHtml(f.Label) + (isRequired ? ' <span class="req-star">*</span>' : '') + '</label>';
