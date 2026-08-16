@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>STS-DMS — Başvuru</title>
+<title>STS-DMS — Başvuru Düzenleme</title>
 <link rel="stylesheet" href="../assets/css/tokens.css">
 <link rel="stylesheet" href="../assets/css/apply.css">
 </head>
@@ -31,9 +31,11 @@
 <script>
   const BASE_URL = 'https://script.google.com/macros/s/AKfycbzztkmZ4T4BbxxrD2-0fxK7I8s77nyBcRA49kfjLg1G7JDe_MQszFnTj-0JjKPIaQJx3g/exec';
 
-  let linkToken = null;
+  let editToken = null;
   let currentForm = null;
+  let rejectedFields = [];
   let formCtl = null;
+  let lastState = 'loading';
 
   async function callApi(payload) {
     if (window.STSLoading) STSLoading.show();
@@ -62,25 +64,24 @@
     return params.get('token');
   }
 
-  let lastState = 'loading';
-
   async function init() {
     await STSI18N.init();
     STSI18N.applyToDom();
 
-    linkToken = getTokenFromUrl();
-    if (!linkToken) {
+    editToken = getTokenFromUrl();
+    if (!editToken) {
       showBlocked(STSI18N.t('apply.error.noToken'));
       return;
     }
 
-    const result = await callApi({ action: 'links.validate', linkToken: linkToken });
+    const result = await callApi({ action: 'application.editInfo', editToken: editToken });
     if (!result.ok) {
       showBlocked(result.error || STSI18N.t('apply.error.generic'));
       return;
     }
 
     currentForm = result.form;
+    rejectedFields = result.rejectedFields || [];
     lastState = 'form';
     renderCurrentState();
   }
@@ -104,8 +105,18 @@
     document.getElementById('apply-form-title').textContent = currentForm.Name;
 
     const content = document.getElementById('apply-content');
+
+    let rejectedHtml = '';
+    if (rejectedFields.length > 0) {
+      rejectedHtml = '<div class="apply-error-banner show" style="background:var(--status-warning-bg); color:var(--status-warning-text);">' +
+        '⚠ ' + escapeHtml(rejectedFields.join(', ')) + ' — ' + STSI18N.t('apply.rejectedGeneral') +
+      '</div>';
+    }
+
     content.innerHTML =
       '<div class="card">' +
+        '<p class="card-subtitle" data-i18n="apply.editSubtitle" style="margin-bottom:14px;"></p>' +
+        rejectedHtml +
         '<div class="apply-error-banner" id="submit-error"></div>' +
         '<div id="form-fields"></div>' +
         '<div class="apply-kvkk-box">' +
@@ -115,19 +126,19 @@
             '<span data-i18n="apply.kvkkAccept"></span>' +
           '</label>' +
         '</div>' +
-        '<button class="btn btn-primary" id="submit-btn" style="width:100%; justify-content:center;" data-i18n="apply.submit"></button>' +
+        '<button class="btn btn-primary" id="submit-btn" style="width:100%; justify-content:center;" data-i18n="apply.saveChanges"></button>' +
         '<div id="submit-progress" style="display:none;"></div>' +
       '</div>';
 
     STSI18N.applyToDom();
 
     const fieldsContainer = document.getElementById('form-fields');
-    formCtl = STSApplyForm.render(fieldsContainer, currentForm, { mode: 'new' });
+    formCtl = STSApplyForm.render(fieldsContainer, currentForm, { mode: 'edit', rejectedFields: rejectedFields });
 
-    document.getElementById('submit-btn').addEventListener('click', submitApplication);
+    document.getElementById('submit-btn').addEventListener('click', submitEdit);
   }
 
-  async function submitApplication() {
+  async function submitEdit() {
     const errorBox = document.getElementById('submit-error');
     errorBox.classList.remove('show');
 
@@ -139,24 +150,14 @@
       return;
     }
 
-    const validationError = formCtl.validate();
-    if (validationError) {
-      errorBox.textContent = validationError;
-      errorBox.classList.add('show');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
-    }
-
     const { formData, files } = formCtl.collect();
     const payload = {
-      action: 'application.submit',
-      linkToken: linkToken,
+      action: 'application.edit',
+      editToken: editToken,
       formData: formData,
-      files: files,
-      kvkkConsent: kvkkConsent
+      files: files
     };
 
-    // Buton yerine dairesel yükleme göstergesini göster
     const submitBtn = document.getElementById('submit-btn');
     const progressContainer = document.getElementById('submit-progress');
     submitBtn.style.display = 'none';
@@ -174,7 +175,7 @@
           progressContainer.style.display = 'none';
           submitBtn.style.display = '';
           submitBtn.disabled = false;
-          submitBtn.textContent = STSI18N.t('apply.submit');
+          submitBtn.textContent = STSI18N.t('apply.saveChanges');
           errorBox.textContent = result.error || STSI18N.t('apply.error.generic');
           errorBox.classList.add('show');
           window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -184,7 +185,7 @@
         progressContainer.style.display = 'none';
         submitBtn.style.display = '';
         submitBtn.disabled = false;
-        submitBtn.textContent = STSI18N.t('apply.submit');
+        submitBtn.textContent = STSI18N.t('apply.saveChanges');
         errorBox.textContent = errMsg;
         errorBox.classList.add('show');
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -194,28 +195,13 @@
 
   function showSuccess(result) {
     lastState = 'success';
-    const editUrl = result.editUrl;
     document.getElementById('apply-content').innerHTML =
       '<div class="card apply-success-screen">' +
         '<div class="apply-success-icon">✓</div>' +
-        '<p style="font-size:16px; font-weight:700; margin-bottom:8px;" data-i18n="apply.successTitle"></p>' +
-        '<p style="font-size:13px; color:var(--text-secondary); margin-bottom:14px;" data-i18n="apply.successDesc"></p>' +
-        '<div class="apply-code-box">' + escapeHtml(result.applicationId) + '</div>' +
-        '<p style="font-size:12px; color:var(--text-secondary); margin:14px 0 6px;" data-i18n="apply.editLinkLabel"></p>' +
-        '<div style="display:flex; gap:8px; align-items:center;">' +
-          '<input type="text" readonly value="' + editUrl + '" id="edit-url-box" style="flex:1; padding:8px; border-radius:6px; border:1px solid var(--surface-border); font-size:11px; font-family:monospace;">' +
-          '<button class="btn btn-secondary" onclick="copyEditUrl()" data-i18n="common.copy"></button>' +
-        '</div>' +
-        '<p style="font-size:11px; color:var(--text-muted); margin-top:14px;" data-i18n="apply.editLinkHint"></p>' +
+        '<p style="font-size:16px; font-weight:700; margin-bottom:8px;" data-i18n="apply.editSuccessTitle"></p>' +
+        '<p style="font-size:13px; color:var(--text-secondary);" data-i18n="apply.editSuccessDesc"></p>' +
       '</div>';
     STSI18N.applyToDom();
-  }
-
-  function copyEditUrl() {
-    const el = document.getElementById('edit-url-box');
-    el.select();
-    navigator.clipboard.writeText(el.value).catch(() => document.execCommand('copy'));
-    alert(STSI18N.t('common.copied'));
   }
 
   function escapeHtml(str) {

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STS-DMS — HR Girişi</title>
+<link rel="stylesheet" href="../assets/css/tokens.css">
+<link rel="stylesheet" href="../assets/css/admin.css">
+</head>
+<body>
+
+<div class="login-screen">
+  <div class="login-card">
+    <div class="login-brand">
+      <div class="badge-mark">STS</div>
+      <div style="text-align:center">
+        <div style="font-weight:700; font-size:18px;" data-i18n="app.name"></div>
+        <div style="color:var(--text-secondary); font-size:13px;" data-i18n="login.title"></div>
+      </div>
+    </div>
+
+    <div id="login-error" class="login-error"></div>
+
+    <form id="login-form">
+      <div class="field">
+        <label data-i18n="login.username"></label>
+        <input type="text" id="username" autocomplete="username" required>
+      </div>
+      <div class="field">
+        <label data-i18n="login.password"></label>
+        <input type="password" id="password" autocomplete="current-password" required>
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center;" id="submit-btn">
+        <span data-i18n="login.submit"></span>
+      </button>
+    </form>
+
+    <div style="margin-top:20px; display:flex; justify-content:center;">
+      <div class="lang-switch">
+        <button data-lang="TR" onclick="changeLang('TR')">TR</button>
+        <button data-lang="RU" onclick="changeLang('RU')">RU</button>
+        <button data-lang="EN" onclick="changeLang('EN')">EN</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="../assets/js/i18n.js"></script>
+<script src="../assets/js/loading.js"></script>
+<script src="../assets/js/api.js"></script>
+<script>
+  (async function () {
+    await STSI18N.init();
+
+    // Zaten girişliyse doğrudan dashboard'a yönlendir
+    if (STSAPI.isLoggedIn()) {
+      window.location.href = 'dashboard.html';
+      return;
+    }
+  })();
+
+  function changeLang(lang) {
+    STSI18N.setLanguage(lang);
+  }
+
+  document.getElementById('login-form').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+    const errorBox = document.getElementById('login-error');
+    const submitBtn = document.getElementById('submit-btn');
+
+    errorBox.classList.remove('show');
+    submitBtn.disabled = true;
+
+    const result = await STSAPI.login(username, password);
+
+    submitBtn.disabled = false;
+
+    if (result.ok) {
+      window.location.href = 'dashboard.html';
+    } else {
+      errorBox.textContent = result.error || STSI18N.t('login.error.generic');
+      errorBox.classList.add('show');
+    }
+  });
+</script>
+
+</body>
+</html>
