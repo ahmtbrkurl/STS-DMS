@@ -231,5 +231,25 @@
   "settings.usernamePasswordRequired": "Kullanıcı adı ve şifre gerekli.",
   "settings.existingUsers": "Kullanıcılar",
   "settings.existingUsersDesc": "Kayıtlı kullanıcıları görüntüleyin, düzenleyin veya pasifleştirin.",
-  "settings.noUsers": "Henüz kullanıcı oluşturulmadı."
+  "settings.noUsers": "Henüz kullanıcı oluşturulmadı.",
+
+  "personnel.reportTitle": "Rapor Oluştur",
+  "personnel.reportDesc": "Başvuruları duruma göre filtreleyip, istediğiniz kolonlarla PDF olarak indirin.",
+  "personnel.reportStatusFilter": "Durum Filtresi",
+  "personnel.reportColumns": "Rapor Kolonları",
+  "personnel.reportGenerate": "PDF Oluştur",
+  "personnel.reportCharsetNote": "Not: PDF çıktısında Türkçe'ye özgü karakterler (ş, ğ, ı, İ, ö, ü, ç) ASCII karşılıklarına çevrilir (örn. İstanbul → Istanbul). Sistemin kendisinde bu bir sorun yaratmaz, sadece PDF dosyasında.",
+  "personnel.reportNoColumns": "Lütfen en az bir kolon seçin.",
+  "personnel.reportNoData": "Seçtiğiniz filtrelere uyan başvuru bulunamadı.",
+  "personnel.reportLibError": "PDF kütüphanesi yüklenemedi, internet bağlantınızı kontrol edip tekrar deneyin.",
+  "personnel.reportPdfTitle": "STS-DMS - Başvuru Raporu",
+  "personnel.reportPdfGenerated": "Oluşturulma:",
+  "personnel.reportPdfCount": "Toplam kayıt:",
+  "personnel.reportCol.candidate": "Aday",
+  "personnel.reportCol.group": "Grup",
+  "personnel.reportCol.campaign": "Kampanya",
+  "personnel.reportCol.linkCode": "Başvuru Kodu",
+  "personnel.reportCol.status": "Durum",
+  "personnel.reportCol.submittedAt": "Gönderim Tarihi",
+  "personnel.reportCol.personnelId": "Personel ID"
 }

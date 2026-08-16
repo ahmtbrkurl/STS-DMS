@@ -15,6 +15,8 @@
 <script src="../assets/js/loading.js"></script>
 <script src="../assets/js/api.js"></script>
 <script src="../assets/js/layout.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script>
   let applications = [];
   let personnel = [];
@@ -31,6 +33,16 @@
 
   const DOC_STATUSES = ['Bekliyor', 'Eksik', 'İnceleniyor', 'Onaylandı', 'Reddedildi'];
   const APP_STATUSES = ['Bekliyor', 'İnceleniyor', 'Onaylandı', 'Reddedildi'];
+
+  const REPORT_COLUMNS = [
+    { key: 'candidate' },
+    { key: 'group' },
+    { key: 'campaign' },
+    { key: 'linkCode' },
+    { key: 'status' },
+    { key: 'submittedAt' },
+    { key: 'personnelId' }
+  ];
 
   (async function () {
     await STSI18N.init();
@@ -85,6 +97,34 @@
         '<div id="applications-list-area"></div>' +
         '<div id="pagination-area"></div>' +
       '</div>' +
+
+      '<div class="card" id="report-builder-card">' +
+        '<div class="card-header">' +
+          '<div>' +
+            '<p class="card-title" data-i18n="personnel.reportTitle"></p>' +
+            '<p class="card-subtitle" data-i18n="personnel.reportDesc"></p>' +
+          '</div>' +
+        '</div>' +
+        '<div style="display:grid; grid-template-columns:1fr 1fr; gap:24px;">' +
+          '<div>' +
+            '<p style="font-size:13px; font-weight:600; margin-bottom:8px;">' + STSI18N.t('personnel.reportStatusFilter') + '</p>' +
+            APP_STATUSES.map(s => '<label class="checkbox-row" style="display:block; margin-bottom:6px;">' +
+              '<input type="checkbox" class="report-status-cb" value="' + s + '" checked> <span>' + s + '</span></label>'
+            ).join('') +
+          '</div>' +
+          '<div>' +
+            '<p style="font-size:13px; font-weight:600; margin-bottom:8px;">' + STSI18N.t('personnel.reportColumns') + '</p>' +
+            REPORT_COLUMNS.map(c => '<label class="checkbox-row" style="display:block; margin-bottom:6px;">' +
+              '<input type="checkbox" id="report-col-' + c.key + '" checked> <span>' + STSI18N.t('personnel.reportCol.' + c.key) + '</span></label>'
+            ).join('') +
+          '</div>' +
+        '</div>' +
+        '<div style="margin-top:16px; font-size:11px; color:var(--text-muted);">' + STSI18N.t('personnel.reportCharsetNote') + '</div>' +
+        '<div style="display:flex; justify-content:flex-end; margin-top:12px;">' +
+          '<button class="btn btn-primary" onclick="generateReportPdf()">📄 ' + STSI18N.t('personnel.reportGenerate') + '</button>' +
+        '</div>' +
+      '</div>' +
+
       '<div id="detail-area"></div>' +
       '<div class="card">' +
         '<div class="card-header">' +
@@ -475,6 +515,84 @@
     const date = new Date(d);
     if (isNaN(date.getTime())) return '—';
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
+  // ============================================================
+  // RAPOR OLUŞTURUCU — filtrelenebilir, kolon seçilebilir PDF çıktısı
+  // ============================================================
+
+  function getReportValue(app, key) {
+    const resolved = resolveGroupForApplication(app);
+    switch (key) {
+      case 'candidate': return (app.FolderName || '').replace(/_/g, ' ');
+      case 'group': return resolved && resolved.group ? resolved.group.Name : '';
+      case 'campaign': return resolved && resolved.campaign ? resolved.campaign.Name : '';
+      case 'linkCode': return app.LinkCode || '';
+      case 'status': return app.Status || '';
+      case 'submittedAt': return fmtDate(app.SubmittedAt);
+      case 'personnelId': return app.PersonnelID || '—';
+      default: return '';
+    }
+  }
+
+  // PDF'te standart fontlar Türkçe'ye özgü karakterleri (ş,ğ,ı,İ,ö,ü,ç)
+  // düzgün göstermediği için ASCII karşılıklarına çeviriyoruz.
+  // Ekranda/sistemde her zaman doğru Türkçe kalır, sadece PDF çıktısında.
+  function turkishToAsciiForPdf(str) {
+    const map = { 'ş':'s','Ş':'S','ğ':'g','Ğ':'G','ı':'i','İ':'I','ö':'o','Ö':'O','ü':'u','Ü':'U','ç':'c','Ç':'C' };
+    return String(str || '').replace(/[şŞğĞıİöÖüÜçÇ]/g, m => map[m] || m);
+  }
+
+  function generateReportPdf() {
+    if (!window.jspdf) {
+      alert(STSI18N.t('personnel.reportLibError'));
+      return;
+    }
+
+    const selectedStatuses = Array.from(document.querySelectorAll('.report-status-cb:checked')).map(cb => cb.value);
+    const selectedColumns = REPORT_COLUMNS.filter(c => {
+      const cb = document.getElementById('report-col-' + c.key);
+      return cb && cb.checked;
+    });
+
+    if (selectedColumns.length === 0) {
+      alert(STSI18N.t('personnel.reportNoColumns'));
+      return;
+    }
+
+    const filtered = selectedStatuses.length > 0
+      ? applications.filter(a => selectedStatuses.indexOf(a.Status) !== -1)
+      : applications;
+
+    if (filtered.length === 0) {
+      alert(STSI18N.t('personnel.reportNoData'));
+      return;
+    }
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    doc.setFontSize(14);
+    doc.text(turkishToAsciiForPdf(STSI18N.t('personnel.reportPdfTitle')), 14, 15);
+    doc.setFontSize(9);
+    doc.setTextColor(120);
+    doc.text(turkishToAsciiForPdf(STSI18N.t('personnel.reportPdfGenerated')) + ' ' + new Date().toLocaleString(), 14, 21);
+    doc.text(turkishToAsciiForPdf(STSI18N.t('personnel.reportPdfCount')) + ' ' + filtered.length, 14, 26);
+    doc.setTextColor(0);
+
+    const head = [selectedColumns.map(c => turkishToAsciiForPdf(STSI18N.t('personnel.reportCol.' + c.key)))];
+    const body = filtered.map(app => selectedColumns.map(c => turkishToAsciiForPdf(getReportValue(app, c.key))));
+
+    doc.autoTable({
+      head: head,
+      body: body,
+      startY: 32,
+      styles: { fontSize: 8, cellPadding: 3 },
+      headStyles: { fillColor: [37, 99, 235] }
+    });
+
+    const filename = 'sts-dms-rapor-' + new Date().toISOString().slice(0, 10) + '.pdf';
+    doc.save(filename);
   }
 
   function escapeHtml(str) {

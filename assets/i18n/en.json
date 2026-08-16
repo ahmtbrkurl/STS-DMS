@@ -231,5 +231,25 @@
   "settings.usernamePasswordRequired": "Username and password are required.",
   "settings.existingUsers": "Users",
   "settings.existingUsersDesc": "View, edit, or deactivate saved users.",
-  "settings.noUsers": "No users created yet."
+  "settings.noUsers": "No users created yet.",
+
+  "personnel.reportTitle": "Generate Report",
+  "personnel.reportDesc": "Filter applications by status and download a PDF with the columns you choose.",
+  "personnel.reportStatusFilter": "Status Filter",
+  "personnel.reportColumns": "Report Columns",
+  "personnel.reportGenerate": "Generate PDF",
+  "personnel.reportCharsetNote": "Note: Turkish-specific characters (ş, ğ, ı, İ, ö, ü, ç) are converted to their ASCII equivalents in the PDF output (e.g. İstanbul → Istanbul). This doesn't affect the system itself, only the PDF file.",
+  "personnel.reportNoColumns": "Please select at least one column.",
+  "personnel.reportNoData": "No applications match the selected filters.",
+  "personnel.reportLibError": "Could not load the PDF library, check your internet connection and try again.",
+  "personnel.reportPdfTitle": "STS-DMS - Application Report",
+  "personnel.reportPdfGenerated": "Generated:",
+  "personnel.reportPdfCount": "Total records:",
+  "personnel.reportCol.candidate": "Candidate",
+  "personnel.reportCol.group": "Group",
+  "personnel.reportCol.campaign": "Campaign",
+  "personnel.reportCol.linkCode": "Application Code",
+  "personnel.reportCol.status": "Status",
+  "personnel.reportCol.submittedAt": "Submitted At",
+  "personnel.reportCol.personnelId": "Personnel ID"
 }

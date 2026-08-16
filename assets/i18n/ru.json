@@ -231,5 +231,25 @@
   "settings.usernamePasswordRequired": "Требуются имя пользователя и пароль.",
   "settings.existingUsers": "Пользователи",
   "settings.existingUsersDesc": "Просмотр, редактирование или деактивация сохранённых пользователей.",
-  "settings.noUsers": "Пользователи ещё не созданы."
+  "settings.noUsers": "Пользователи ещё не созданы.",
+
+  "personnel.reportTitle": "Создать отчёт",
+  "personnel.reportDesc": "Отфильтруйте заявки по статусу и скачайте PDF с выбранными колонками.",
+  "personnel.reportStatusFilter": "Фильтр по статусу",
+  "personnel.reportColumns": "Колонки отчёта",
+  "personnel.reportGenerate": "Создать PDF",
+  "personnel.reportCharsetNote": "Примечание: турецкие специфические символы (ş, ğ, ı, İ, ö, ü, ç) в PDF заменяются на латинские аналоги. Это не влияет на саму систему, только на PDF-файл.",
+  "personnel.reportNoColumns": "Выберите хотя бы одну колонку.",
+  "personnel.reportNoData": "Нет заявок, соответствующих выбранным фильтрам.",
+  "personnel.reportLibError": "Не удалось загрузить библиотеку PDF, проверьте подключение к интернету и попробуйте снова.",
+  "personnel.reportPdfTitle": "STS-DMS - Отчёт по заявкам",
+  "personnel.reportPdfGenerated": "Создано:",
+  "personnel.reportPdfCount": "Всего записей:",
+  "personnel.reportCol.candidate": "Кандидат",
+  "personnel.reportCol.group": "Группа",
+  "personnel.reportCol.campaign": "Кампания",
+  "personnel.reportCol.linkCode": "Код заявки",
+  "personnel.reportCol.status": "Статус",
+  "personnel.reportCol.submittedAt": "Дата подачи",
+  "personnel.reportCol.personnelId": "ID сотрудника"
 }
