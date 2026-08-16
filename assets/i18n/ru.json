@@ -238,7 +238,7 @@
   "personnel.reportStatusFilter": "Фильтр по статусу",
   "personnel.reportColumns": "Колонки отчёта",
   "personnel.reportGenerate": "Создать PDF",
-  "personnel.reportCharsetNote": "Примечание: турецкие специфические символы (ş, ğ, ı, İ, ö, ü, ç) в PDF заменяются на латинские аналоги. Это не влияет на саму систему, только на PDF-файл.",
+  "personnel.reportCharsetNote": "Примечание: турецкие специфические символы (ş, ğ, ı, İ, ö, ü, ç) и кириллица заменяются на латинские буквы в PDF (напр. İstanbul → Istanbul, Иванов → Ivanov). Это не влияет на саму систему (экран, Sheets, Drive), только на PDF-файл.",
   "personnel.reportNoColumns": "Выберите хотя бы одну колонку.",
   "personnel.reportNoData": "Нет заявок, соответствующих выбранным фильтрам.",
   "personnel.reportLibError": "Не удалось загрузить библиотеку PDF, проверьте подключение к интернету и попробуйте снова.",
@@ -251,5 +251,6 @@
   "personnel.reportCol.linkCode": "Код заявки",
   "personnel.reportCol.status": "Статус",
   "personnel.reportCol.submittedAt": "Дата подачи",
-  "personnel.reportCol.personnelId": "ID сотрудника"
+  "personnel.reportCol.personnelId": "ID сотрудника",
+  "personnel.reportCol.phone": "Телефон"
 }

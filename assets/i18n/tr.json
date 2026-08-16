@@ -238,7 +238,7 @@
   "personnel.reportStatusFilter": "Durum Filtresi",
   "personnel.reportColumns": "Rapor Kolonları",
   "personnel.reportGenerate": "PDF Oluştur",
-  "personnel.reportCharsetNote": "Not: PDF çıktısında Türkçe'ye özgü karakterler (ş, ğ, ı, İ, ö, ü, ç) ASCII karşılıklarına çevrilir (örn. İstanbul → Istanbul). Sistemin kendisinde bu bir sorun yaratmaz, sadece PDF dosyasında.",
+  "personnel.reportCharsetNote": "Not: PDF çıktısında Türkçe'ye özgü karakterler (ş, ğ, ı, İ, ö, ü, ç) ve Kiril alfabesi (Rusça vb.) sade Latin harflere çevrilir (örn. İstanbul → Istanbul, Иванов → Ivanov). Sistemin kendisinde (ekran, Sheets, Drive) bu bir sorun yaratmaz, sadece PDF dosyasında.",
   "personnel.reportNoColumns": "Lütfen en az bir kolon seçin.",
   "personnel.reportNoData": "Seçtiğiniz filtrelere uyan başvuru bulunamadı.",
   "personnel.reportLibError": "PDF kütüphanesi yüklenemedi, internet bağlantınızı kontrol edip tekrar deneyin.",
@@ -251,5 +251,6 @@
   "personnel.reportCol.linkCode": "Başvuru Kodu",
   "personnel.reportCol.status": "Durum",
   "personnel.reportCol.submittedAt": "Gönderim Tarihi",
-  "personnel.reportCol.personnelId": "Personel ID"
+  "personnel.reportCol.personnelId": "Personel ID",
+  "personnel.reportCol.phone": "Telefon"
 }

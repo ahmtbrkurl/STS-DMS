@@ -16,7 +16,6 @@
 <script src="../assets/js/api.js"></script>
 <script src="../assets/js/layout.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script>
   let applications = [];
   let personnel = [];
@@ -41,7 +40,8 @@
     { key: 'linkCode' },
     { key: 'status' },
     { key: 'submittedAt' },
-    { key: 'personnelId' }
+    { key: 'personnelId' },
+    { key: 'phone' }
   ];
 
   (async function () {
@@ -521,7 +521,7 @@
   // RAPOR OLUŞTURUCU — filtrelenebilir, kolon seçilebilir PDF çıktısı
   // ============================================================
 
-  function getReportValue(app, key) {
+  function getReportValue(app, key, formFieldMaps) {
     const resolved = resolveGroupForApplication(app);
     switch (key) {
       case 'candidate': return (app.FolderName || '').replace(/_/g, ' ');
@@ -531,19 +531,100 @@
       case 'status': return app.Status || '';
       case 'submittedAt': return fmtDate(app.SubmittedAt);
       case 'personnelId': return app.PersonnelID || '—';
+      case 'phone': {
+        if (!resolved || !resolved.campaign) return '';
+        const fieldMap = formFieldMaps[resolved.campaign.FormID];
+        if (!fieldMap) return '';
+        const formData = JSON.parse(app.FormDataJSON || '{}');
+        for (const fid in formData) {
+          const f = fieldMap[fid];
+          if (f && f.Type === 'Telefon') return formData[fid] || '';
+        }
+        return '';
+      }
       default: return '';
     }
   }
 
-  // PDF'te standart fontlar Türkçe'ye özgü karakterleri (ş,ğ,ı,İ,ö,ü,ç)
-  // düzgün göstermediği için ASCII karşılıklarına çeviriyoruz.
-  // Ekranda/sistemde her zaman doğru Türkçe kalır, sadece PDF çıktısında.
-  function turkishToAsciiForPdf(str) {
-    const map = { 'ş':'s','Ş':'S','ğ':'g','Ğ':'G','ı':'i','İ':'I','ö':'o','Ö':'O','ü':'u','Ü':'U','ç':'c','Ç':'C' };
-    return String(str || '').replace(/[şŞğĞıİöÖüÜçÇ]/g, m => map[m] || m);
+  // PDF'te standart fontlar (Helvetica) sadece temel Latin karakterleri
+  // destekler — ne Türkçe'ye özgü harfleri (ş,ğ,ı,İ,ö,ü,ç) ne de Kiril
+  // alfabesini (Rusça vb.) düzgün gösterebilir. Bu yüzden PDF ÇIKTISI
+  // İÇİN metni sade Latin harflere çeviriyoruz. Sistemin kendisinde
+  // (ekranda, Sheets'te, Drive'da) veriler HER ZAMAN orijinal haliyle
+  // kalır — bu dönüşüm SADECE indirilen PDF dosyası için uygulanır.
+  const TR_MAP = { 'ş':'s','Ş':'S','ğ':'g','Ğ':'G','ı':'i','İ':'I','ö':'o','Ö':'O','ü':'u','Ü':'U','ç':'c','Ç':'C' };
+  const CYRILLIC_MAP = {
+    'а':'a','б':'b','в':'v','г':'g','д':'d','е':'e','ё':'yo','ж':'zh','з':'z','и':'i','й':'y',
+    'к':'k','л':'l','м':'m','н':'n','о':'o','п':'p','р':'r','с':'s','т':'t','у':'u','ф':'f',
+    'х':'kh','ц':'ts','ч':'ch','ш':'sh','щ':'shch','ъ':'','ы':'y','ь':'','э':'e','ю':'yu','я':'ya',
+    'А':'A','Б':'B','В':'V','Г':'G','Д':'D','Е':'E','Ё':'Yo','Ж':'Zh','З':'Z','И':'I','Й':'Y',
+    'К':'K','Л':'L','М':'M','Н':'N','О':'O','П':'P','Р':'R','С':'S','Т':'T','У':'U','Ф':'F',
+    'Х':'Kh','Ц':'Ts','Ч':'Ch','Ш':'Sh','Щ':'Shch','Ъ':'','Ы':'Y','Ь':'','Э':'E','Ю':'Yu','Я':'Ya'
+  };
+
+  function sanitizeForPdf(str) {
+    str = String(str == null ? '' : str);
+    let out = '';
+    for (let i = 0; i < str.length; i++) {
+      const ch = str[i];
+      if (TR_MAP[ch] !== undefined) out += TR_MAP[ch];
+      else if (CYRILLIC_MAP[ch] !== undefined) out += CYRILLIC_MAP[ch];
+      else out += ch;
+    }
+    return out;
   }
 
-  function generateReportPdf() {
+  // jsPDF çekirdeği ile (eklenti KULLANMADAN) elle basit bir tablo çizer.
+  // Sayfa taşarsa otomatik yeni sayfa açar, başlığı tekrar çizer.
+  function drawSimpleTable(doc, headers, rows) {
+    const marginLeft = 14;
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const usableWidth = pageWidth - marginLeft * 2;
+    const colWidth = usableWidth / headers.length;
+    const rowHeight = 8;
+    let y = 32;
+
+    function drawHeaderRow() {
+      doc.setFillColor(37, 99, 235);
+      doc.setDrawColor(37, 99, 235);
+      doc.rect(marginLeft, y, usableWidth, rowHeight, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(9);
+      headers.forEach(function (h, i) {
+        doc.text(h, marginLeft + i * colWidth + 2, y + rowHeight - 2.5);
+      });
+      y += rowHeight;
+      doc.setTextColor(20, 20, 20);
+      doc.setFontSize(8);
+    }
+
+    drawHeaderRow();
+
+    rows.forEach(function (row, rIdx) {
+      if (y + rowHeight > pageHeight - 15) {
+        doc.addPage();
+        y = 20;
+        drawHeaderRow();
+      }
+      if (rIdx % 2 === 1) {
+        doc.setFillColor(245, 247, 250);
+        doc.rect(marginLeft, y, usableWidth, rowHeight, 'F');
+      }
+      const maxChars = Math.max(6, Math.floor(colWidth / 1.9));
+      row.forEach(function (cell, i) {
+        let text = String(cell == null ? '' : cell);
+        if (text.length > maxChars) text = text.substring(0, maxChars - 1) + '…';
+        doc.text(text, marginLeft + i * colWidth + 2, y + rowHeight - 2.5);
+      });
+      y += rowHeight;
+    });
+
+    // Tablo çerçevesi
+    doc.setDrawColor(220, 220, 220);
+  }
+
+  async function generateReportPdf() {
     if (!window.jspdf) {
       alert(STSI18N.t('personnel.reportLibError'));
       return;
@@ -569,27 +650,39 @@
       return;
     }
 
+    // Telefon kolonu seçiliyse, ilgili formların alan tanımlarını önceden çek
+    const formFieldMaps = {};
+    if (selectedColumns.some(c => c.key === 'phone')) {
+      const distinctFormIds = new Set();
+      filtered.forEach(app => {
+        const resolved = resolveGroupForApplication(app);
+        if (resolved && resolved.campaign) distinctFormIds.add(resolved.campaign.FormID);
+      });
+      for (const formId of distinctFormIds) {
+        const res = await STSAPI.call('forms.get', { formId: formId });
+        if (res.ok) {
+          const map = {};
+          res.data.fields.forEach(f => { map[f.FieldID] = f; });
+          formFieldMaps[formId] = map;
+        }
+      }
+    }
+
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
 
     doc.setFontSize(14);
-    doc.text(turkishToAsciiForPdf(STSI18N.t('personnel.reportPdfTitle')), 14, 15);
+    doc.setTextColor(20, 20, 20);
+    doc.text(sanitizeForPdf(STSI18N.t('personnel.reportPdfTitle')), 14, 15);
     doc.setFontSize(9);
-    doc.setTextColor(120);
-    doc.text(turkishToAsciiForPdf(STSI18N.t('personnel.reportPdfGenerated')) + ' ' + new Date().toLocaleString(), 14, 21);
-    doc.text(turkishToAsciiForPdf(STSI18N.t('personnel.reportPdfCount')) + ' ' + filtered.length, 14, 26);
-    doc.setTextColor(0);
+    doc.setTextColor(120, 120, 120);
+    doc.text(sanitizeForPdf(STSI18N.t('personnel.reportPdfGenerated')) + ' ' + new Date().toLocaleString(), 14, 21);
+    doc.text(sanitizeForPdf(STSI18N.t('personnel.reportPdfCount')) + ' ' + filtered.length, 14, 26);
 
-    const head = [selectedColumns.map(c => turkishToAsciiForPdf(STSI18N.t('personnel.reportCol.' + c.key)))];
-    const body = filtered.map(app => selectedColumns.map(c => turkishToAsciiForPdf(getReportValue(app, c.key))));
+    const headers = selectedColumns.map(c => sanitizeForPdf(STSI18N.t('personnel.reportCol.' + c.key)));
+    const rows = filtered.map(app => selectedColumns.map(c => sanitizeForPdf(getReportValue(app, c.key, formFieldMaps))));
 
-    doc.autoTable({
-      head: head,
-      body: body,
-      startY: 32,
-      styles: { fontSize: 8, cellPadding: 3 },
-      headStyles: { fillColor: [37, 99, 235] }
-    });
+    drawSimpleTable(doc, headers, rows);
 
     const filename = 'sts-dms-rapor-' + new Date().toISOString().slice(0, 10) + '.pdf';
     doc.save(filename);

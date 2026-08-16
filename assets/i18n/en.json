@@ -238,7 +238,7 @@
   "personnel.reportStatusFilter": "Status Filter",
   "personnel.reportColumns": "Report Columns",
   "personnel.reportGenerate": "Generate PDF",
-  "personnel.reportCharsetNote": "Note: Turkish-specific characters (ş, ğ, ı, İ, ö, ü, ç) are converted to their ASCII equivalents in the PDF output (e.g. İstanbul → Istanbul). This doesn't affect the system itself, only the PDF file.",
+  "personnel.reportCharsetNote": "Note: Turkish-specific characters (ş, ğ, ı, İ, ö, ü, ç) and Cyrillic script (Russian etc.) are converted to plain Latin letters in the PDF output (e.g. İstanbul → Istanbul, Иванов → Ivanov). This doesn't affect the system itself (screen, Sheets, Drive), only the PDF file.",
   "personnel.reportNoColumns": "Please select at least one column.",
   "personnel.reportNoData": "No applications match the selected filters.",
   "personnel.reportLibError": "Could not load the PDF library, check your internet connection and try again.",
@@ -251,5 +251,6 @@
   "personnel.reportCol.linkCode": "Application Code",
   "personnel.reportCol.status": "Status",
   "personnel.reportCol.submittedAt": "Submitted At",
-  "personnel.reportCol.personnelId": "Personnel ID"
+  "personnel.reportCol.personnelId": "Personnel ID",
+  "personnel.reportCol.phone": "Phone"
 }
