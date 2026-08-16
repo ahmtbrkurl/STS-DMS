@@ -16,6 +16,7 @@
 <script src="../assets/js/api.js"></script>
 <script src="../assets/js/layout.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
   let applications = [];
   let personnel = [];
@@ -120,7 +121,8 @@
           '</div>' +
         '</div>' +
         '<div style="margin-top:16px; font-size:11px; color:var(--text-muted);">' + STSI18N.t('personnel.reportCharsetNote') + '</div>' +
-        '<div style="display:flex; justify-content:flex-end; margin-top:12px;">' +
+        '<div style="display:flex; justify-content:flex-end; gap:10px; margin-top:12px;">' +
+          '<button class="btn" style="background:#1d6f42; color:#fff;" onclick="generateReportExcel()">📊 ' + STSI18N.t('personnel.reportGenerateExcel') + '</button>' +
           '<button class="btn btn-primary" onclick="generateReportPdf()">📄 ' + STSI18N.t('personnel.reportGenerate') + '</button>' +
         '</div>' +
       '</div>' +
@@ -624,49 +626,102 @@
     doc.setDrawColor(220, 220, 220);
   }
 
+  // Rapor için PDF ve Excel'in ortak kullandığı filtre/kolon toplama
+  function gatherReportSelection() {
+    const selectedStatuses = Array.from(document.querySelectorAll('.report-status-cb:checked')).map(cb => cb.value);
+    const selectedColumns = REPORT_COLUMNS.filter(c => {
+      const cb = document.getElementById('report-col-' + c.key);
+      return cb && cb.checked;
+    });
+    const filtered = selectedStatuses.length > 0
+      ? applications.filter(a => selectedStatuses.indexOf(a.Status) !== -1)
+      : applications;
+    return { selectedColumns, filtered };
+  }
+
+  // Telefon kolonu seçiliyse ilgili formların alan tanımlarını önceden çeker
+  async function buildFormFieldMapsIfNeeded(selectedColumns, filtered) {
+    const formFieldMaps = {};
+    if (!selectedColumns.some(c => c.key === 'phone')) return formFieldMaps;
+    const distinctFormIds = new Set();
+    filtered.forEach(app => {
+      const resolved = resolveGroupForApplication(app);
+      if (resolved && resolved.campaign) distinctFormIds.add(resolved.campaign.FormID);
+    });
+    for (const formId of distinctFormIds) {
+      const res = await STSAPI.call('forms.get', { formId: formId });
+      if (res.ok) {
+        const map = {};
+        res.data.fields.forEach(f => { map[f.FieldID] = f; });
+        formFieldMaps[formId] = map;
+      }
+    }
+    return formFieldMaps;
+  }
+
+  /**
+   * Excel çıktısı — SheetJS ile üretilir. PDF'in aksine burada HİÇBİR
+   * karakter dönüşümü YAPILMAZ: Excel dosyaları Unicode'u native olarak
+   * destekler, bu yüzden Türkçe VE Kiril (Rusça) isimler/metinler
+   * PDF'teki gibi sadeleştirilmeden, birebir doğru haliyle çıkar.
+   * Kiril/çok dilli veri içeren raporlar için Excel önerilir.
+   */
+  async function generateReportExcel() {
+    if (!window.XLSX) {
+      alert(STSI18N.t('personnel.reportLibError'));
+      return;
+    }
+
+    const { selectedColumns, filtered } = gatherReportSelection();
+
+    if (selectedColumns.length === 0) {
+      alert(STSI18N.t('personnel.reportNoColumns'));
+      return;
+    }
+    if (filtered.length === 0) {
+      alert(STSI18N.t('personnel.reportNoData'));
+      return;
+    }
+
+    const formFieldMaps = await buildFormFieldMapsIfNeeded(selectedColumns, filtered);
+
+    const headers = selectedColumns.map(c => STSI18N.t('personnel.reportCol.' + c.key));
+    const rows = filtered.map(app => selectedColumns.map(c => getReportValue(app, c.key, formFieldMaps)));
+
+    const wsData = [headers].concat(rows);
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+    // Kolon genişliklerini içeriğe göre otomatik ayarla
+    ws['!cols'] = headers.map((h, i) => {
+      const maxLen = rows.reduce((max, r) => Math.max(max, String(r[i] || '').length), h.length);
+      return { wch: Math.min(40, maxLen + 3) };
+    });
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Rapor');
+
+    const filename = 'sts-dms-rapor-' + new Date().toISOString().slice(0, 10) + '.xlsx';
+    XLSX.writeFile(wb, filename);
+  }
+
   async function generateReportPdf() {
     if (!window.jspdf) {
       alert(STSI18N.t('personnel.reportLibError'));
       return;
     }
 
-    const selectedStatuses = Array.from(document.querySelectorAll('.report-status-cb:checked')).map(cb => cb.value);
-    const selectedColumns = REPORT_COLUMNS.filter(c => {
-      const cb = document.getElementById('report-col-' + c.key);
-      return cb && cb.checked;
-    });
+    const { selectedColumns, filtered } = gatherReportSelection();
 
     if (selectedColumns.length === 0) {
       alert(STSI18N.t('personnel.reportNoColumns'));
       return;
     }
-
-    const filtered = selectedStatuses.length > 0
-      ? applications.filter(a => selectedStatuses.indexOf(a.Status) !== -1)
-      : applications;
-
     if (filtered.length === 0) {
       alert(STSI18N.t('personnel.reportNoData'));
       return;
     }
 
-    // Telefon kolonu seçiliyse, ilgili formların alan tanımlarını önceden çek
-    const formFieldMaps = {};
-    if (selectedColumns.some(c => c.key === 'phone')) {
-      const distinctFormIds = new Set();
-      filtered.forEach(app => {
-        const resolved = resolveGroupForApplication(app);
-        if (resolved && resolved.campaign) distinctFormIds.add(resolved.campaign.FormID);
-      });
-      for (const formId of distinctFormIds) {
-        const res = await STSAPI.call('forms.get', { formId: formId });
-        if (res.ok) {
-          const map = {};
-          res.data.fields.forEach(f => { map[f.FieldID] = f; });
-          formFieldMaps[formId] = map;
-        }
-      }
-    }
+    const formFieldMaps = await buildFormFieldMapsIfNeeded(selectedColumns, filtered);
 
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
